@@ -1,23 +1,24 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faClipboardCheck, faSearch, faChevronDown, faChevronLeft,
   faCheckCircle, faArrowUp, faArrowDown, faMinus,
-  faBoxOpen, faRotateLeft, faTriangleExclamation,
+  faBoxOpen, faRotateLeft, faTriangleExclamation, faSpinner,
 } from '@fortawesome/free-solid-svg-icons';
-import productsData from '../../products.json';
-import type { Product } from '../../types';
+import { inventoryApi } from '../../api/inventory.api';
+import type { ProductAPI } from '../../api/products.api';
 import './StockCheck.css';
 
-/* ── Types ── */
+// ── Types ────────────────────────────────────────────────
 interface StockCheckRow {
-  product: Product;
+  product: ProductAPI;
   actualStock: string;
   note: string;
 }
 
 interface ReviewItem {
-  productId: string;
+  productId: number;
+  productCode: string;
   productName: string;
   category: string;
   systemStock: number;
@@ -37,56 +38,92 @@ interface HistoryRecord {
 
 type Step = 'input' | 'review' | 'done';
 
-const CATEGORIES = ['Tất cả', 'Cà phê', 'Trà', 'Sinh tố', 'Nước ép', 'Bánh', 'Combo', 'Khác'];
-
 const fmtDate = (d: Date) =>
-  d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  d.toLocaleDateString('vi-VN', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
 
-/* ── Component ── */
+// ── Component ────────────────────────────────────────────
 const StockCheck: React.FC = () => {
-  const [products, setProducts]     = useState<Product[]>(productsData as Product[]);
-  const [step, setStep]             = useState<Step>('input');
-  const [mode, setMode]             = useState<'all' | 'select'>('all');
-  const [search, setSearch]         = useState('');
-  const [filterCat, setFilterCat]   = useState('Tất cả');
-  const [checker, setChecker]       = useState('');
-  const [checkerErr, setCheckerErr] = useState(false);
-  const [rows, setRows]             = useState<StockCheckRow[]>([]);
+  const [products,    setProducts]    = useState<ProductAPI[]>([]);
+  const [categories,  setCategories]  = useState<string[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [submitting,  setSubmitting]  = useState(false);
+  const [step,        setStep]        = useState<Step>('input');
+  const [mode,        setMode]        = useState<'all' | 'select'>('all');
+  const [search,      setSearch]      = useState('');
+  const [filterCat,   setFilterCat]   = useState('Tất cả');
+  const [checker,     setChecker]     = useState('');
+  const [checkerErr,  setCheckerErr]  = useState(false);
+  const [rows,        setRows]        = useState<StockCheckRow[]>([]);
   const [reviewItems, setReviewItems] = useState<ReviewItem[]>([]);
-  const [history, setHistory]       = useState<HistoryRecord[]>([]);
-  const [tab, setTab]               = useState<'check' | 'history'>('check');
+  const [history,     setHistory]     = useState<HistoryRecord[]>([]);
+  const [tab,         setTab]         = useState<'check' | 'history'>('check');
 
-  /* ── Danh sách SP lọc (mode=select) ── */
+  // ── Fetch products từ API ────────────────────────────────
+  const fetchProducts = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await inventoryApi.getProducts();
+      const data = res.data.data;
+      setProducts(data);
+
+      // Lấy danh sách categories từ data
+      const cats = ['Tất cả', ...Array.from(
+        new Set(data.map(p => p.category.name))
+      )];
+      setCategories(cats);
+    } catch (err) {
+      console.error('Lỗi tải sản phẩm:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchProducts(); }, [fetchProducts]);
+
+  // ── Lọc sản phẩm cho panel chọn (mode=select) ───────────
   const filteredProducts = useMemo(() =>
-    (productsData as Product[]).filter(p => {
-      if (filterCat !== 'Tất cả' && p.category !== filterCat) return false;
+    products.filter(p => {
+      if (filterCat !== 'Tất cả' && p.category.name !== filterCat) return false;
       const q = search.toLowerCase();
-      return !q || p.name.toLowerCase().includes(q);
-    }), [search, filterCat]);
+      return !q || p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q);
+    }), [products, search, filterCat]);
 
-  /* ── Active rows (tất cả hoặc đã chọn) ── */
+  // ── Sản phẩm có finite stock (mode=all) ─────────────────
+  // stock=0 && minStock=0 → coi là không giới hạn → bỏ qua
+  const finiteProducts = useMemo(() =>
+    products.filter(p => !(p.stock === 0 && p.minStock === 0)),
+    [products]
+  );
+
+  // ── Active rows hiển thị trong bảng nhập liệu ───────────
   const activeRows: StockCheckRow[] = useMemo(() => {
     if (mode === 'all') {
-      const finite = (productsData as Product[]).filter(p => p.stock < 999);
-      return finite.map(p => rows.find(r => r.product.id === p.id) ?? { product: p, actualStock: '', note: '' });
+      return finiteProducts.map(p =>
+        rows.find(r => r.product.id === p.id) ?? { product: p, actualStock: '', note: '' }
+      );
     }
     return rows;
-  }, [mode, rows]);
+  }, [mode, rows, finiteProducts]);
 
-  const isInRows  = (id: string) => rows.some(r => r.product.id === id);
+  const isInRows = (id: number) => rows.some(r => r.product.id === id);
 
-  const toggleSelect = (p: Product) => {
-    if (isInRows(p.id)) setRows(prev => prev.filter(r => r.product.id !== p.id));
-    else setRows(prev => [...prev, { product: p, actualStock: '', note: '' }]);
+  const toggleSelect = (p: ProductAPI) => {
+    if (isInRows(p.id))
+      setRows(prev => prev.filter(r => r.product.id !== p.id));
+    else
+      setRows(prev => [...prev, { product: p, actualStock: '', note: '' }]);
   };
 
-  const setActual = (id: string, val: string) => {
+  const setActual = (id: number, val: string) => {
     const num = val.replace(/\D/g, '');
     if (mode === 'all') {
       setRows(prev => {
         const exists = prev.find(r => r.product.id === id);
         if (exists) return prev.map(r => r.product.id === id ? { ...r, actualStock: num } : r);
-        const product = (productsData as Product[]).find(p => p.id === id)!;
+        const product = finiteProducts.find(p => p.id === id)!;
         return [...prev, { product, actualStock: num, note: '' }];
       });
     } else {
@@ -94,12 +131,12 @@ const StockCheck: React.FC = () => {
     }
   };
 
-  const setNote = (id: string, val: string) => {
+  const setNote = (id: number, val: string) => {
     if (mode === 'all') {
       setRows(prev => {
         const exists = prev.find(r => r.product.id === id);
         if (exists) return prev.map(r => r.product.id === id ? { ...r, note: val } : r);
-        const product = (productsData as Product[]).find(p => p.id === id)!;
+        const product = finiteProducts.find(p => p.id === id)!;
         return [...prev, { product, actualStock: '', note: val }];
       });
     } else {
@@ -107,16 +144,16 @@ const StockCheck: React.FC = () => {
     }
   };
 
-  const getRow = (id: string) => rows.find(r => r.product.id === id);
+  const getRow = (id: number) => rows.find(r => r.product.id === id);
 
-  const getDiff = (p: Product, actualStr: string) =>
+  const getDiff = (p: ProductAPI, actualStr: string) =>
     actualStr === '' ? null : parseInt(actualStr, 10) - p.stock;
 
-  /* Stats */
+  // ── Stats bảng nhập liệu ─────────────────────────────────
   const stats = useMemo(() => {
     let filled = 0, over = 0, under = 0, match = 0;
     activeRows.forEach(r => {
-      const actual = (getRow(r.product.id)?.actualStock ?? r.actualStock);
+      const actual = getRow(r.product.id)?.actualStock ?? r.actualStock;
       if (!actual) return;
       filled++;
       const diff = parseInt(actual, 10) - r.product.stock;
@@ -127,7 +164,7 @@ const StockCheck: React.FC = () => {
     return { filled, over, under, match, total: activeRows.length };
   }, [activeRows, rows]);
 
-  /* ── Bước 1 → Bước 2: tạo review items ── */
+  // ── Bước 1 → Bước 2 ─────────────────────────────────────
   const handleGoReview = () => {
     if (!checker.trim()) { setCheckerErr(true); return; }
     setCheckerErr(false);
@@ -138,8 +175,9 @@ const StockCheck: React.FC = () => {
         const actual = parseInt(getRow(r.product.id)?.actualStock ?? r.actualStock, 10);
         return {
           productId:   r.product.id,
+          productCode: r.product.code,
           productName: r.product.name,
-          category:    r.product.category,
+          category:    r.product.category.name,
           systemStock: r.product.stock,
           actualStock: actual,
           diff:        actual - r.product.stock,
@@ -152,46 +190,70 @@ const StockCheck: React.FC = () => {
     setStep('review');
   };
 
-  /* ── Bước 2 → Duyệt: cập nhật tồn kho ── */
-  const handleApprove = () => {
-    setProducts(prev =>
-      prev.map(p => {
-        const item = reviewItems.find(i => i.productId === p.id);
-        return item ? { ...p, stock: item.actualStock } : p;
-      })
-    );
+  // ── Bước 2 → Duyệt: gọi API cập nhật từng sản phẩm ─────
+  const handleApprove = async () => {
+    try {
+      setSubmitting(true);
 
-    const record: HistoryRecord = {
-      id:         `KC${Date.now()}`,
-      date:       fmtDate(new Date()),
-      checker:    checker.trim(),
-      totalItems: reviewItems.length,
-      totalDiff:  reviewItems.reduce((s, i) => s + Math.abs(i.diff), 0),
-      items:      reviewItems,
-    };
-    setHistory(prev => [record, ...prev]);
+      // Gọi API song song cho tất cả sản phẩm có chênh lệch
+      await Promise.all(
+        reviewItems.map(item =>
+          inventoryApi.updateStock(item.productId, item.actualStock)
+        )
+      );
 
-    setRows([]);
-    setChecker('');
-    setReviewItems([]);
-    setStep('done');
-    setTimeout(() => setStep('input'), 3500);
+      // Lưu vào lịch sử local
+      const record: HistoryRecord = {
+        id:         `KC${Date.now()}`,
+        date:       fmtDate(new Date()),
+        checker:    checker.trim(),
+        totalItems: reviewItems.length,
+        totalDiff:  reviewItems.reduce((s, i) => s + Math.abs(i.diff), 0),
+        items:      reviewItems,
+      };
+      setHistory(prev => [record, ...prev]);
+
+      // Reset
+      setRows([]);
+      setChecker('');
+      setReviewItems([]);
+      setStep('done');
+
+      // Reload products từ server
+      await fetchProducts();
+
+      setTimeout(() => setStep('input'), 3500);
+    } catch (err) {
+      console.error('Lỗi cập nhật tồn kho:', err);
+      alert('Có lỗi xảy ra khi cập nhật tồn kho. Vui lòng thử lại.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleReset = () => {
-    setRows([]); setSearch(''); setFilterCat('Tất cả'); setChecker(''); setCheckerErr(false);
+    setRows([]); setSearch(''); setFilterCat('Tất cả');
+    setChecker(''); setCheckerErr(false);
   };
 
-  /* ── Review stats ── */
+  // ── Review stats ─────────────────────────────────────────
   const reviewStats = useMemo(() => ({
-    over:  reviewItems.filter(i => i.diff > 0).length,
-    under: reviewItems.filter(i => i.diff < 0).length,
-    match: reviewItems.filter(i => i.diff === 0).length,
+    over:       reviewItems.filter(i => i.diff > 0).length,
+    under:      reviewItems.filter(i => i.diff < 0).length,
+    match:      reviewItems.filter(i => i.diff === 0).length,
     totalOver:  reviewItems.filter(i => i.diff > 0).reduce((s, i) => s + i.diff, 0),
     totalUnder: reviewItems.filter(i => i.diff < 0).reduce((s, i) => s + i.diff, 0),
   }), [reviewItems]);
 
-  /* ─────────────────────────────────────────────────────────── */
+  // ── Loading state ────────────────────────────────────────
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: 12, color: '#6b7280' }}>
+      <FontAwesomeIcon icon={faSpinner} spin />
+      <span>Đang tải dữ liệu tồn kho...</span>
+    </div>
+  );
+
+  // ── Render ───────────────────────────────────────────────
   return (
     <div className="sc-page">
       {/* Header */}
@@ -208,7 +270,8 @@ const StockCheck: React.FC = () => {
             onClick={() => { setTab('check'); setStep('input'); }}>
             Phiếu kiểm kho
           </button>
-          <button className={`sc-tab ${tab === 'history' ? 'active' : ''}`} onClick={() => setTab('history')}>
+          <button className={`sc-tab ${tab === 'history' ? 'active' : ''}`}
+            onClick={() => setTab('history')}>
             Lịch sử
             {history.length > 0 && <span className="sc-badge">{history.length}</span>}
           </button>
@@ -218,7 +281,7 @@ const StockCheck: React.FC = () => {
       {tab === 'check' ? (
         <div className="sc-body">
 
-          {/* ══ STEP: DONE ══ */}
+          {/* ══ DONE ══ */}
           {step === 'done' && (
             <div className="sc-done">
               <div className="sc-done-icon"><FontAwesomeIcon icon={faCheckCircle} /></div>
@@ -227,24 +290,19 @@ const StockCheck: React.FC = () => {
             </div>
           )}
 
-          {/* ══ STEP: INPUT ══ */}
+          {/* ══ INPUT ══ */}
           {step === 'input' && (<>
             {/* Progress */}
             <div className="sc-progress">
-              <div className="sc-progress-step active">
-                <span className="sc-step-num">1</span>
-                <span className="sc-step-label">Nhập liệu</span>
-              </div>
-              <div className="sc-progress-line" />
-              <div className="sc-progress-step">
-                <span className="sc-step-num">2</span>
-                <span className="sc-step-label">Xem xét</span>
-              </div>
-              <div className="sc-progress-line" />
-              <div className="sc-progress-step">
-                <span className="sc-step-num">3</span>
-                <span className="sc-step-label">Hoàn tất</span>
-              </div>
+              {['Nhập liệu', 'Xem xét', 'Hoàn tất'].map((label, i) => (
+                <React.Fragment key={label}>
+                  {i > 0 && <div className="sc-progress-line" />}
+                  <div className={`sc-progress-step ${i === 0 ? 'active' : ''}`}>
+                    <span className="sc-step-num">{i + 1}</span>
+                    <span className="sc-step-label">{label}</span>
+                  </div>
+                </React.Fragment>
+              ))}
             </div>
 
             {/* Config */}
@@ -255,6 +313,7 @@ const StockCheck: React.FC = () => {
                   <button className={`sc-mode-btn ${mode === 'all' ? 'active' : ''}`}
                     onClick={() => { setMode('all'); setRows([]); }}>
                     <FontAwesomeIcon icon={faBoxOpen} /> Tất cả sản phẩm
+                    <em style={{ fontSize: 11, marginLeft: 4 }}>({finiteProducts.length})</em>
                   </button>
                   <button className={`sc-mode-btn ${mode === 'select' ? 'active' : ''}`}
                     onClick={() => { setMode('select'); setRows([]); }}>
@@ -279,13 +338,13 @@ const StockCheck: React.FC = () => {
                 <div className="sc-select-toolbar">
                   <div className="sc-search-wrap">
                     <FontAwesomeIcon icon={faSearch} className="sc-search-icon" />
-                    <input className="sc-search" placeholder="Tìm sản phẩm..."
+                    <input className="sc-search" placeholder="Tìm theo tên, mã sản phẩm..."
                       value={search} onChange={e => setSearch(e.target.value)} />
                   </div>
                   <div className="sc-cat-wrap">
                     <select className="sc-cat-select" value={filterCat}
                       onChange={e => setFilterCat(e.target.value)}>
-                      {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                      {categories.map(c => <option key={c}>{c}</option>)}
                     </select>
                     <FontAwesomeIcon icon={faChevronDown} className="sc-cat-arrow" />
                   </div>
@@ -302,19 +361,22 @@ const StockCheck: React.FC = () => {
                       </div>
                       <div className="sc-card-info">
                         <span className="sc-card-name">{p.name}</span>
-                        <span className="sc-card-cat">{p.category}</span>
+                        <span className="sc-card-cat">{p.category.name}</span>
                       </div>
-                      <div className="sc-card-stock">{p.stock >= 999 ? '∞' : p.stock}</div>
+                      <div className="sc-card-stock">
+                        {p.stock === 0 && p.minStock === 0 ? '∞' : p.stock}
+                      </div>
                     </div>
                   ))}
                 </div>
                 {rows.length > 0 && (
-                  <div className="sc-selected-count">Đã chọn <strong>{rows.length}</strong> sản phẩm để kiểm</div>
+                  <div className="sc-selected-count">
+                    Đã chọn <strong>{rows.length}</strong> sản phẩm để kiểm
+                  </div>
                 )}
               </div>
             )}
 
-            {/* Empty */}
             {mode === 'select' && rows.length === 0 && (
               <div className="sc-empty">
                 <FontAwesomeIcon icon={faClipboardCheck} className="sc-empty-icon" />
@@ -351,28 +413,39 @@ const StockCheck: React.FC = () => {
                     const diff = getDiff(r.product, actualStr);
                     const note = getRow(r.product.id)?.note ?? '';
                     return (
-                      <div key={r.product.id} className={`sc-row sc-row-data ${i % 2 === 1 ? 'alt' : ''}`}>
+                      <div key={r.product.id}
+                        className={`sc-row sc-row-data ${i % 2 === 1 ? 'alt' : ''}`}>
                         <div className="sc-col sc-col-name">
                           <span className="sc-prod-name">{r.product.name}</span>
-                          <span className="sc-prod-id">{r.product.id}</span>
+                          <span className="sc-prod-id">{r.product.code}</span>
                         </div>
-                        <div className="sc-col sc-col-cat"><span className="sc-tag">{r.product.category}</span></div>
+                        <div className="sc-col sc-col-cat">
+                          <span className="sc-tag">{r.product.category.name}</span>
+                        </div>
                         <div className="sc-col sc-col-sys">
-                          <span className="sc-sys-stock">{r.product.stock >= 999 ? '∞' : r.product.stock}</span>
+                          <span className="sc-sys-stock">{r.product.stock}</span>
                         </div>
                         <div className="sc-col sc-col-actual">
                           <input
-                            className={`sc-actual-input ${diff !== null && diff < 0 ? 'input-under' : diff !== null && diff > 0 ? 'input-over' : diff === 0 ? 'input-match' : ''}`}
+                            className={`sc-actual-input ${
+                              diff !== null && diff < 0 ? 'input-under' :
+                              diff !== null && diff > 0 ? 'input-over'  :
+                              diff === 0               ? 'input-match'  : ''
+                            }`}
                             placeholder="Nhập số..."
                             value={actualStr}
                             onChange={e => setActual(r.product.id, e.target.value)}
                           />
                         </div>
                         <div className="sc-col sc-col-diff">
-                          {diff === null ? <span className="sc-diff-empty">—</span>
-                            : diff === 0  ? <span className="sc-diff match"><FontAwesomeIcon icon={faMinus} /> Khớp</span>
-                            : diff > 0    ? <span className="sc-diff over"><FontAwesomeIcon icon={faArrowUp} /> +{diff}</span>
-                            :               <span className="sc-diff under"><FontAwesomeIcon icon={faArrowDown} /> {diff}</span>}
+                          {diff === null
+                            ? <span className="sc-diff-empty">—</span>
+                            : diff === 0
+                            ? <span className="sc-diff match"><FontAwesomeIcon icon={faMinus} /> Khớp</span>
+                            : diff > 0
+                            ? <span className="sc-diff over"><FontAwesomeIcon icon={faArrowUp} /> +{diff}</span>
+                            : <span className="sc-diff under"><FontAwesomeIcon icon={faArrowDown} /> {diff}</span>
+                          }
                         </div>
                         <div className="sc-col sc-col-note">
                           <input className="sc-note-input" placeholder="Ghi chú..."
@@ -385,7 +458,6 @@ const StockCheck: React.FC = () => {
               </div>
             )}
 
-            {/* Footer step 1 */}
             {activeRows.length > 0 && (
               <div className="sc-footer">
                 <button className="sc-btn-reset" onClick={handleReset}>
@@ -393,7 +465,9 @@ const StockCheck: React.FC = () => {
                 </button>
                 <div className="sc-footer-right">
                   <span className="sc-footer-hint">
-                    {stats.filled === 0 ? 'Nhập tồn thực tế để tiếp tục' : `Đã nhập ${stats.filled}/${stats.total} sản phẩm`}
+                    {stats.filled === 0
+                      ? 'Nhập tồn thực tế để tiếp tục'
+                      : `Đã nhập ${stats.filled}/${stats.total} sản phẩm`}
                   </span>
                   <button
                     className={`sc-btn-next ${stats.filled === 0 ? 'disabled' : ''}`}
@@ -407,9 +481,8 @@ const StockCheck: React.FC = () => {
             )}
           </>)}
 
-          {/* ══ STEP: REVIEW ══ */}
+          {/* ══ REVIEW ══ */}
           {step === 'review' && (<>
-            {/* Progress */}
             <div className="sc-progress">
               <div className="sc-progress-step done">
                 <span className="sc-step-num"><FontAwesomeIcon icon={faCheckCircle} /></span>
@@ -427,7 +500,6 @@ const StockCheck: React.FC = () => {
               </div>
             </div>
 
-            {/* Summary cards */}
             <div className="sc-review-summary">
               <div className="sc-sum-card">
                 <span className="sc-sum-label">Tổng sản phẩm kiểm</span>
@@ -452,7 +524,6 @@ const StockCheck: React.FC = () => {
               </div>
             </div>
 
-            {/* Warning nếu có chênh lệch */}
             {(reviewStats.over > 0 || reviewStats.under > 0) && (
               <div className="sc-review-warning">
                 <FontAwesomeIcon icon={faTriangleExclamation} />
@@ -460,7 +531,6 @@ const StockCheck: React.FC = () => {
               </div>
             )}
 
-            {/* Review table */}
             <div className="sc-table-wrap">
               <div className="sc-table-header">
                 <span className="sc-table-title">
@@ -478,10 +548,11 @@ const StockCheck: React.FC = () => {
                   <div className="sc-col sc-col-note">Ghi chú</div>
                 </div>
                 {reviewItems.map((item, i) => (
-                  <div key={item.productId} className={`sc-row sc-row-data ${i % 2 === 1 ? 'alt' : ''} ${item.diff !== 0 ? 'row-diff' : ''}`}>
+                  <div key={item.productId}
+                    className={`sc-row sc-row-data ${i % 2 === 1 ? 'alt' : ''} ${item.diff !== 0 ? 'row-diff' : ''}`}>
                     <div className="sc-col sc-col-name">
                       <span className="sc-prod-name">{item.productName}</span>
-                      <span className="sc-prod-id">{item.productId}</span>
+                      <span className="sc-prod-id">{item.productCode}</span>
                     </div>
                     <div className="sc-col sc-col-cat"><span className="sc-tag">{item.category}</span></div>
                     <div className="sc-col sc-col-sys"><span className="sc-sys-stock">{item.systemStock}</span></div>
@@ -491,9 +562,12 @@ const StockCheck: React.FC = () => {
                       </span>
                     </div>
                     <div className="sc-col sc-col-diff">
-                      {item.diff === 0 ? <span className="sc-diff match"><FontAwesomeIcon icon={faMinus} /> Khớp</span>
-                        : item.diff > 0 ? <span className="sc-diff over"><FontAwesomeIcon icon={faArrowUp} /> +{item.diff}</span>
-                        :                 <span className="sc-diff under"><FontAwesomeIcon icon={faArrowDown} /> {item.diff}</span>}
+                      {item.diff === 0
+                        ? <span className="sc-diff match"><FontAwesomeIcon icon={faMinus} /> Khớp</span>
+                        : item.diff > 0
+                        ? <span className="sc-diff over"><FontAwesomeIcon icon={faArrowUp} /> +{item.diff}</span>
+                        : <span className="sc-diff under"><FontAwesomeIcon icon={faArrowDown} /> {item.diff}</span>
+                      }
                     </div>
                     <div className="sc-col sc-col-note">
                       <span className="sc-note-text">{item.note || '—'}</span>
@@ -503,21 +577,27 @@ const StockCheck: React.FC = () => {
               </div>
             </div>
 
-            {/* Footer step 2 */}
             <div className="sc-footer">
-              <button className="sc-btn-reset" onClick={() => setStep('input')}>
+              <button className="sc-btn-reset" onClick={() => setStep('input')}
+                disabled={submitting}>
                 <FontAwesomeIcon icon={faChevronLeft} /> Quay lại chỉnh sửa
               </button>
               <div className="sc-footer-right">
-                <span className="sc-footer-hint">Sau khi duyệt, tồn kho sẽ được cập nhật ngay lập tức</span>
-                <button className="sc-btn-approve" onClick={handleApprove}>
-                  <FontAwesomeIcon icon={faCheckCircle} /> Duyệt & Cập nhật tồn kho
+                <span className="sc-footer-hint">
+                  Sau khi duyệt, tồn kho sẽ được cập nhật ngay lập tức
+                </span>
+                <button className="sc-btn-approve" onClick={handleApprove}
+                  disabled={submitting}>
+                  {submitting
+                    ? <><FontAwesomeIcon icon={faSpinner} spin /> Đang cập nhật...</>
+                    : <><FontAwesomeIcon icon={faCheckCircle} /> Duyệt & Cập nhật tồn kho</>
+                  }
                 </button>
               </div>
             </div>
           </>)}
-
         </div>
+
       ) : (
         /* ── Tab Lịch sử ── */
         <div className="sc-body">
@@ -556,7 +636,7 @@ const StockCheck: React.FC = () => {
                       <div key={item.productId} className="sc-row sc-row-data">
                         <div className="sc-col sc-col-name">
                           <span className="sc-prod-name">{item.productName}</span>
-                          <span className="sc-prod-id">{item.productId}</span>
+                          <span className="sc-prod-id">{item.productCode}</span>
                         </div>
                         <div className="sc-col sc-col-cat"><span className="sc-tag">{item.category}</span></div>
                         <div className="sc-col sc-col-sys">{item.systemStock}</div>
@@ -566,9 +646,12 @@ const StockCheck: React.FC = () => {
                           </span>
                         </div>
                         <div className="sc-col sc-col-diff">
-                          {item.diff === 0 ? <span className="sc-diff match"><FontAwesomeIcon icon={faMinus} /> Khớp</span>
-                            : item.diff > 0 ? <span className="sc-diff over"><FontAwesomeIcon icon={faArrowUp} /> +{item.diff}</span>
-                            :                 <span className="sc-diff under"><FontAwesomeIcon icon={faArrowDown} /> {item.diff}</span>}
+                          {item.diff === 0
+                            ? <span className="sc-diff match"><FontAwesomeIcon icon={faMinus} /> Khớp</span>
+                            : item.diff > 0
+                            ? <span className="sc-diff over"><FontAwesomeIcon icon={faArrowUp} /> +{item.diff}</span>
+                            : <span className="sc-diff under"><FontAwesomeIcon icon={faArrowDown} /> {item.diff}</span>
+                          }
                         </div>
                         <div className="sc-col sc-col-note">
                           <span className="sc-note-text">{item.note || '—'}</span>

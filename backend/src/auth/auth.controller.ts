@@ -23,7 +23,7 @@ import { RequirePermissions } from "../permissions/decorators/permissions.decora
 
 @Controller("auth")
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   /**
    * POST /auth/login
@@ -150,5 +150,14 @@ export class AuthController {
     @Param("sessionId", ParseIntPipe) sessionId: number,
   ) {
     return this.authService.forceLogoutDevice(userId, sessionId)
+  }
+  /**
+ * GET /auth/me
+ * Lấy thông tin user hiện tại từ access token (cookie)
+ */
+  @Get("me")
+  @UseGuards(JwtAuthGuard)
+  async getMe(@CurrentUser() user: JwtPayload) {
+    return { user };
   }
 }

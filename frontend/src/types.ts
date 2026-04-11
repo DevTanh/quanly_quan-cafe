@@ -10,8 +10,6 @@ export type NavPage =
   | 'Báo cáo'
   | 'Thuế & Kế toán';
 
-  // ── Thêm 2 interface này vào file types.ts hiện có của bạn ──
-
 export interface Product {
   id: string;
   name: string;
@@ -22,13 +20,13 @@ export interface Product {
   cost: number;
   stock: number;
   unit: string;
-  status: string;
+  status: 'active' | 'inactive';
   image: string;
 }
 
 export interface ProductForm {
   name: string;
-  category: string;
+  category: string;   // giữ string để dùng chung cho cả Products.tsx
   menuType: string;
   price: string;
   cost: string;
