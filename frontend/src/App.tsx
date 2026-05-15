@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import Header from './components/Header/Header';
-import Navbar from './components/Navbar/Navbar';
-import type { NavPage, SubPage } from './components/Navbar/Navbar';
-import Dashboard    from './components/Dashboard/Dashboard';
-import Products     from './components/Products/Products';
-import StockCheck   from './components/Products/StockCheck';
-import Tables       from './components/Tables/Tables';
-import Transactions from './components/Transactions/Transactions';
-import Employees    from './components/Employees/Employees';
-import WorkSchedule from './components/Employees/WorkSchedule';
-import Attendance   from './components/Employees/Attendance';
-import Login        from './components/Login/Login';
+import Header from './components/layout/Header';
+import Navbar from './components/layout/Navbar';
+import type { NavPage, SubPage } from './components/layout/Navbar';
+import Dashboard    from './components/dashboard/Dashboard';
+import Products     from './components/products/Products';
+import StockCheck   from './components/products/StockCheck';
+import Tables       from './components/tables/Tables';
+import Transactions from './components/transactions/Transactions';
+import Employees    from './components/employees/Employees';
+import WorkSchedule from './components/shifts/WorkSchedule';
+import Attendance   from './components/shifts/Attendance';
+import Login        from './components/auth/Login';
+import CashierPOS   from './components/cashier/CashierPOS';
 import { can }      from './rbac/permissions';
 import './App.css';
 
@@ -38,9 +39,9 @@ const AppShell: React.FC = () => {
   const { user } = useAuth();
   const role = user?.role ?? '';
 
-  const [activePage, setActivePage] = useState<NavPage>('Tổng quan');
-  const [subPage,    setSubPage]    = useState<SubPage | null>(null);
-  const [navColor,   setNavColor]   = useState<string>(
+  const [activePage,   setActivePage]   = useState<NavPage>('Tổng quan');
+  const [subPage,      setSubPage]      = useState<SubPage | null>(null);
+  const [navColor,     setNavColor]     = useState<string>(
     () => localStorage.getItem('navColor') || DEFAULT_COLOR
   );
 
@@ -55,32 +56,37 @@ const AppShell: React.FC = () => {
   };
 
   const renderPage = () => {
+    // ── Thu ngân (Xử lý như một page thay vì overlay) ──
+    if (activePage === ('Thu ngân' as NavPage)) {
+      return <CashierPOS />;
+    }
+
     /* ── Hàng hóa ── */
     if (activePage === 'Hàng hóa') {
-      if (!can(role, 'products:read')) return <Forbidden />;
+      if (!can(role, 'product:view')) return <Forbidden />;
       if (subPage === 'Kiểm kho') return <StockCheck />;
-      return <Products />;   // Danh mục hoặc mặc định
+      return <Products />;
     }
 
     /* ── Phòng/Bàn ── */
     if (activePage === 'Phòng/Bàn') {
-      if (!can(role, 'tables:read')) return <Forbidden />;
+      if (!can(role, 'table:view')) return <Forbidden />;
       if (subPage === 'Gọi món qua mã QR') return <WIP name="Gọi món qua mã QR" />;
-      return <Tables />;     // Danh sách phòng bàn hoặc mặc định
+      return <Tables />;
     }
 
     /* ── Nhân viên ── */
     if (activePage === 'Nhân viên') {
-      if (!can(role, 'employees:read')) return <Forbidden />;
+      if (!can(role, 'user:view_list')) return <Forbidden />;
       if (subPage === 'Lịch làm việc')  return <WorkSchedule />;
       if (subPage === 'Bảng chấm công') return <Attendance />;
-      return <Employees />;  // Danh sách nhân viên hoặc mặc định
+      return <Employees />;
     }
 
     /* ── Các trang khác ── */
     switch (activePage) {
       case 'Tổng quan': return <Dashboard />;
-      case 'Giao dịch': return can(role, 'transactions:read') ? <Transactions /> : <Forbidden />;
+      case 'Giao dịch': return can(role, 'order:view_all') ? <Transactions /> : <Forbidden />;
       case 'Báo cáo':   return <WIP name="Báo cáo" />;
       default:          return <Dashboard />;
     }
@@ -95,7 +101,10 @@ const AppShell: React.FC = () => {
         navColor={navColor}
         userRole={role}
       />
-      {renderPage()}
+
+      <main className="content-area">
+        {renderPage()}
+      </main>
     </div>
   );
 };

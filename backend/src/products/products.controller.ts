@@ -31,7 +31,7 @@ export class ProductsController {
     private readonly productsService: ProductsService,
     private readonly excelService: ExcelService,
     private readonly productsRepo: ProductsRepository,
-  ) {}
+  ) { }
 
   // ─── GET /products ────────────────────────────────────────────
   @Get()

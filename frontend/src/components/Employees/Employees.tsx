@@ -1,76 +1,76 @@
-import React, { useState } from 'react';
-import employeesData from '../../employees.json';
-import type { Employee, Department, Position, EmployeeForm } from './employeeTypes';
-import { genEmpId } from './employeeTypes';
-import EmployeeList from './EmployeeList';
+// src/components/employees/Employees.tsx
+// Kết nối thực với BE /api/v1/users — không còn dùng employees.json
+
+import React, { useState, useEffect, useCallback } from 'react'
+import { usersApi } from '../../api/users.api'
+import type { UserRecord, QueryUserParams } from '../../api/users.api'
+import type { UserRole } from '../../types'
+import EmployeeList from './EmployeeList'
 
 const Employees: React.FC = () => {
-  const [employees,   setEmployees]   = useState<Employee[]>(employeesData.employees as Employee[]);
-  const [departments, setDepartments] = useState<Department[]>(employeesData.departments);
-  const [positions,   setPositions]   = useState<Position[]>(employeesData.positions);
+  const [employees, setEmployees] = useState<UserRecord[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  /* ── Employee handlers ── */
-  const handleAdd = (form: EmployeeForm) => {
-    setEmployees(prev => [{ id: genEmpId(prev), ...form }, ...prev]);
-  };
+  // ─── Fetch ────────────────────────────────────────────────────────
 
-  const handleUpdate = (id: string, form: EmployeeForm) => {
-    setEmployees(prev => prev.map(e => e.id === id ? { ...e, ...form } : e));
-  };
+  const fetchEmployees = useCallback(async (params?: QueryUserParams) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await usersApi.findAll(params)
+      setEmployees(data)
+    } catch (err: any) {
+      const msg = err?.response?.data?.message
+      setError(Array.isArray(msg) ? msg[0] : msg ?? 'Không thể tải danh sách nhân viên.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
-  const handleDelete = (id: string) => {
-    setEmployees(prev => prev.filter(e => e.id !== id));
-  };
+  useEffect(() => { fetchEmployees() }, [fetchEmployees])
 
-  const handleToggle = (id: string) => {
-    setEmployees(prev => prev.map(e =>
-      e.id === id ? { ...e, status: e.status === 'active' ? 'inactive' : 'active' } : e
-    ));
-  };
+  // ─── Handlers ─────────────────────────────────────────────────────
 
-  /* ── Department handlers ── */
-  const handleDeptAdd = (name: string) => {
-    setDepartments(prev => [...prev, { id: `dept-${Date.now()}`, name }]);
-  };
+  const handleSearch = (params: QueryUserParams) => fetchEmployees(params)
 
-  const handleDeptUpdate = (id: string, name: string) => {
-    setDepartments(prev => prev.map(d => d.id === id ? { ...d, name } : d));
-  };
+  const handleCreate = async (payload: {
+    fullName: string; email: string; phone?: string
+    password: string; role: UserRole; isActive: boolean
+  }): Promise<UserRecord> => {
+    const created = await usersApi.create(payload)
+    setEmployees(prev => [created, ...prev])
+    return created
+  }
 
-  const handleDeptDelete = (id: string) => {
-    setDepartments(prev => prev.filter(d => d.id !== id));
-  };
+  const handleUpdate = async (
+    id: number,
+    payload: { fullName?: string; email?: string; phone?: string; role?: UserRole; isActive?: boolean; password?: string },
+  ): Promise<UserRecord> => {
+    const updated = await usersApi.update(id, payload)
+    setEmployees(prev => prev.map(e => e.id === updated.id ? updated : e))
+    return updated
+  }
 
-  /* ── Position handlers ── */
-  const handlePosAdd = (name: string) => {
-    setPositions(prev => [...prev, { id: `pos-${Date.now()}`, name }]);
-  };
+  const handleToggleActive = async (emp: UserRecord): Promise<void> => {
+    const updated = await usersApi.toggleActive(emp)
+    setEmployees(prev => prev.map(e => e.id === updated.id ? updated : e))
+  }
 
-  const handlePosUpdate = (id: string, name: string) => {
-    setPositions(prev => prev.map(p => p.id === id ? { ...p, name } : p));
-  };
-
-  const handlePosDelete = (id: string) => {
-    setPositions(prev => prev.filter(p => p.id !== id));
-  };
+  // ─── Render ───────────────────────────────────────────────────────
 
   return (
     <EmployeeList
       employees={employees}
-      departments={departments}
-      positions={positions}
-      onAdd={handleAdd}
+      loading={loading}
+      error={error}
+      onSearch={handleSearch}
+      onCreate={handleCreate}
       onUpdate={handleUpdate}
-      onDelete={handleDelete}
-      onToggle={handleToggle}
-      onDeptAdd={handleDeptAdd}
-      onDeptUpdate={handleDeptUpdate}
-      onDeptDelete={handleDeptDelete}
-      onPosAdd={handlePosAdd}
-      onPosUpdate={handlePosUpdate}
-      onPosDelete={handlePosDelete}
+      onToggleActive={handleToggleActive}
+      onRetry={() => fetchEmployees()}
     />
-  );
-};
+  )
+}
 
-export default Employees;
+export default Employees

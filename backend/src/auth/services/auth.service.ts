@@ -249,7 +249,20 @@ export class AuthService {
       createdAt: s.createdAt,
     }))
   }
-
+  async getMe(userId: number) {
+  const user = await this.usersRepository.findOneById(userId);
+  if (!user) {
+    throw new NotFoundException(`User #${userId} not found`);
+  }
+  return {
+    user: {
+      id: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+    },
+  };
+}
   // ──────────────────────────────────────────────
   // PRIVATE HELPERS
   // ──────────────────────────────────────────────

@@ -1,14 +1,11 @@
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
+@import "tailwindcss";
+
+@keyframes tbFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
-body{
-  background:#f5f6fa;
-}
-
-a{
-  text-decoration:none;
-  color:inherit;
+@keyframes tbSlide {
+  from { transform: translateY(24px) scale(0.97); opacity: 0; }
+  to   { transform: translateY(0) scale(1);       opacity: 1; }
 }

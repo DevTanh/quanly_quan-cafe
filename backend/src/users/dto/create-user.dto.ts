@@ -3,19 +3,20 @@ import {
   IsEnum,
   IsNotEmpty,
   IsOptional,
+  IsBoolean,
   IsString,
   Length,
   MinLength,
-} from "class-validator"
-import { UserRole } from "../entities/user.entity"
+} from 'class-validator'
+import { UserRole } from '../entities/user.entity'
 
 export class CreateUserDto {
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Họ tên không được để trống' })
   @Length(2, 100)
   fullName: string
 
-  @IsEmail()
+  @IsEmail({}, { message: 'Email không hợp lệ' })
   @Length(5, 100)
   email: string
 
@@ -25,12 +26,20 @@ export class CreateUserDto {
   phone?: string
 
   @IsString()
-  @IsNotEmpty()
-  @MinLength(6, { message: 'Password must be at least 6 characters long' })
+  @IsNotEmpty({ message: 'Mật khẩu không được để trống' })
+  @MinLength(6, { message: 'Mật khẩu phải ít nhất 6 ký tự' })
   password: string
 
   @IsEnum(UserRole, {
-    message: "Role must be admin | manager | cashier | staff | barista",
+    message: 'role phải là: admin | manager | cashier | staff | barista',
   })
   role: UserRole
+
+  /**
+   * Tài khoản kích hoạt ngay khi tạo hay không.
+   * Mặc định false — Admin cần bật thủ công sau khi cấp thông tin cho nhân viên.
+   */
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean
 }

@@ -3,10 +3,9 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faPlus, faPen, faTrash, faToggleOn, faToggleOff,
   faTableCells, faList, faChair, faLayerGroup,
-  faXmark, faChevronDown, faBoxOpen,
+  faXmark, faBoxOpen,
 } from '@fortawesome/free-solid-svg-icons';
 import tablesData from '../../tables.json';
-import './Tables.css';
 
 /* ── Types ── */
 interface TableItem {
@@ -29,21 +28,48 @@ interface Zone {
 const genId = (prefix: string) => `${prefix}-${Date.now()}`;
 
 const INIT_TABLE: Omit<TableItem, 'id'> = { name: '', seats: 4, note: '', status: 'active' };
-const INIT_ZONE:  Omit<Zone,  'id' | 'tables'> = { name: '', note: '', status: 'active' };
+const INIT_ZONE: Omit<Zone, 'id' | 'tables'> = { name: '', note: '', status: 'active' };
 
 /* ── Modal chung ── */
-interface ModalProps { title: string; onClose: () => void; onSave: () => void; saveLabel?: string; children: React.ReactNode; }
+interface ModalProps {
+  title: string;
+  onClose: () => void;
+  onSave: () => void;
+  saveLabel?: string;
+  children: React.ReactNode;
+}
 const Modal: React.FC<ModalProps> = ({ title, onClose, onSave, saveLabel = 'Lưu', children }) => (
-  <div className="tb-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-    <div className="tb-modal">
-      <div className="tb-modal-header">
-        <h3 className="tb-modal-title">{title}</h3>
-        <button className="tb-modal-close" onClick={onClose}><FontAwesomeIcon icon={faXmark} /></button>
+  <div
+    className="fixed inset-0 bg-slate-900/45 backdrop-blur-sm flex items-center justify-center z-[1000] animate-[tbFade_0.15s_ease]"
+    onClick={e => e.target === e.currentTarget && onClose()}
+  >
+    <div className="bg-white rounded-2xl w-[440px] max-w-[95vw] shadow-[0_24px_64px_rgba(0,0,0,0.18)] overflow-hidden animate-[tbSlide_0.22s_cubic-bezier(0.34,1.3,0.64,1)]">
+      {/* Header */}
+      <div className="flex items-center justify-between px-[22px] pt-[18px] pb-4 border-b border-gray-100">
+        <h3 className="text-base font-extrabold text-gray-900 m-0">{title}</h3>
+        <button
+          onClick={onClose}
+          className="w-8 h-8 border-none bg-gray-100 rounded-lg cursor-pointer text-gray-500 text-sm flex items-center justify-center transition-all hover:bg-red-100 hover:text-red-600"
+        >
+          <FontAwesomeIcon icon={faXmark} />
+        </button>
       </div>
-      <div className="tb-modal-body">{children}</div>
-      <div className="tb-modal-footer">
-        <button className="tb-btn-cancel" onClick={onClose}>Huỷ</button>
-        <button className="tb-btn-save" onClick={onSave}>{saveLabel}</button>
+      {/* Body */}
+      <div className="px-[22px] py-5">{children}</div>
+      {/* Footer */}
+      <div className="flex justify-end gap-2.5 px-[22px] pt-3.5 pb-[18px] border-t border-gray-100">
+        <button
+          onClick={onClose}
+          className="h-10 px-5 border border-gray-200 bg-white rounded-[9px] text-[13.5px] font-semibold text-gray-500 cursor-pointer transition-all hover:bg-gray-50 hover:border-gray-300 font-[inherit]"
+        >
+          Huỷ
+        </button>
+        <button
+          onClick={onSave}
+          className="h-10 px-6 border-none bg-[#3dba74] rounded-[9px] text-[13.5px] font-bold text-white cursor-pointer transition-all hover:bg-[#16a34a] hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(61,186,116,0.3)] font-[inherit]"
+        >
+          {saveLabel}
+        </button>
       </div>
     </div>
   </div>
@@ -52,12 +78,25 @@ const Modal: React.FC<ModalProps> = ({ title, onClose, onSave, saveLabel = 'Lưu
 /* ── Confirm xoá ── */
 interface ConfirmProps { message: string; onCancel: () => void; onConfirm: () => void; }
 const ConfirmModal: React.FC<ConfirmProps> = ({ message, onCancel, onConfirm }) => (
-  <div className="tb-overlay" onClick={e => e.target === e.currentTarget && onCancel()}>
-    <div className="tb-confirm">
-      <p className="tb-confirm-msg">{message}</p>
-      <div className="tb-confirm-actions">
-        <button className="tb-btn-cancel" onClick={onCancel}>Huỷ</button>
-        <button className="tb-btn-delete" onClick={onConfirm}>Xoá</button>
+  <div
+    className="fixed inset-0 bg-slate-900/45 backdrop-blur-sm flex items-center justify-center z-[1000]"
+    onClick={e => e.target === e.currentTarget && onCancel()}
+  >
+    <div className="bg-white rounded-2xl px-[26px] pt-7 pb-[22px] w-[380px] max-w-[95vw] shadow-[0_24px_64px_rgba(0,0,0,0.18)] text-center animate-[tbSlide_0.22s_cubic-bezier(0.34,1.3,0.64,1)]">
+      <p className="text-[14px] text-gray-700 leading-[1.65] mb-[22px]">{message}</p>
+      <div className="flex justify-center gap-2.5">
+        <button
+          onClick={onCancel}
+          className="h-10 px-5 border border-gray-200 bg-white rounded-[9px] text-[13.5px] font-semibold text-gray-500 cursor-pointer transition-all hover:bg-gray-50 font-[inherit]"
+        >
+          Huỷ
+        </button>
+        <button
+          onClick={onConfirm}
+          className="h-10 px-6 border-none bg-[#e11d48] rounded-[9px] text-[13.5px] font-bold text-white cursor-pointer transition-all hover:bg-[#be123c] font-[inherit]"
+        >
+          Xoá
+        </button>
       </div>
     </div>
   </div>
@@ -65,28 +104,28 @@ const ConfirmModal: React.FC<ConfirmProps> = ({ message, onCancel, onConfirm }) 
 
 /* ══════════════════════════════════════════════════════════════ */
 const Tables: React.FC = () => {
-  const [zones,       setZones]       = useState<Zone[]>(tablesData as Zone[]);
-  const [activeZone,  setActiveZone]  = useState<string>(tablesData[0]?.id ?? '');
-  const [viewMode,    setViewMode]    = useState<'grid' | 'list'>('grid');
+  const [zones, setZones] = useState<Zone[]>(tablesData as Zone[]);
+  const [activeZone, setActiveZone] = useState<string>(tablesData[0]?.id ?? '');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  /* Zone modal */
-  const [zoneModal,   setZoneModal]   = useState<{ open: boolean; mode: 'add' | 'edit'; data: Omit<Zone,'id'|'tables'>; editId?: string }>
-    ({ open: false, mode: 'add', data: { ...INIT_ZONE } });
+  const [zoneModal, setZoneModal] = useState<{
+    open: boolean; mode: 'add' | 'edit';
+    data: Omit<Zone, 'id' | 'tables'>; editId?: string;
+  }>({ open: false, mode: 'add', data: { ...INIT_ZONE } });
 
-  /* Table modal */
-  const [tableModal,  setTableModal]  = useState<{ open: boolean; mode: 'add' | 'edit' | 'bulk'; data: Omit<TableItem,'id'>; editId?: string; bulkCount: number; bulkStart: number }>
-    ({ open: false, mode: 'add', data: { ...INIT_TABLE }, bulkCount: 5, bulkStart: 1 });
+  const [tableModal, setTableModal] = useState<{
+    open: boolean; mode: 'add' | 'edit' | 'bulk';
+    data: Omit<TableItem, 'id'>; editId?: string;
+    bulkCount: number; bulkStart: number;
+  }>({ open: false, mode: 'add', data: { ...INIT_TABLE }, bulkCount: 5, bulkStart: 1 });
 
-  /* Confirm */
-  const [confirm,     setConfirm]     = useState<{ open: boolean; message: string; onConfirm: () => void }>
+  const [confirm, setConfirm] = useState<{ open: boolean; message: string; onConfirm: () => void }>
     ({ open: false, message: '', onConfirm: () => {} });
 
-  /* Derived */
   const currentZone = useMemo(() => zones.find(z => z.id === activeZone), [zones, activeZone]);
 
   /* ── Zone CRUD ── */
   const openAddZone = () => setZoneModal({ open: true, mode: 'add', data: { ...INIT_ZONE } });
-
   const openEditZone = (z: Zone) =>
     setZoneModal({ open: true, mode: 'edit', data: { name: z.name, note: z.note, status: z.status }, editId: z.id });
 
@@ -116,16 +155,15 @@ const Tables: React.FC = () => {
   };
 
   const toggleZoneStatus = (zoneId: string) =>
-    setZones(prev => prev.map(z => z.id === zoneId
-      ? { ...z, status: z.status === 'active' ? 'inactive' : 'active' } : z));
+    setZones(prev => prev.map(z =>
+      z.id === zoneId ? { ...z, status: z.status === 'active' ? 'inactive' : 'active' } : z
+    ));
 
   /* ── Table CRUD ── */
   const openAddTable = () =>
     setTableModal({ open: true, mode: 'add', data: { ...INIT_TABLE }, bulkCount: 5, bulkStart: 1 });
-
   const openBulkTable = () =>
     setTableModal({ open: true, mode: 'bulk', data: { ...INIT_TABLE, name: 'Bàn' }, bulkCount: 5, bulkStart: 1 });
-
   const openEditTable = (t: TableItem) =>
     setTableModal({ open: true, mode: 'edit', data: { name: t.name, seats: t.seats, note: t.note, status: t.status }, editId: t.id, bulkCount: 5, bulkStart: 1 });
 
@@ -138,7 +176,6 @@ const Tables: React.FC = () => {
       setZones(prev => prev.map(z => z.id === activeZone
         ? { ...z, tables: z.tables.map(t => t.id === tableModal.editId ? { ...t, ...tableModal.data } : t) } : z));
     } else {
-      // bulk
       const newTables: TableItem[] = Array.from({ length: tableModal.bulkCount }, (_, i) => ({
         id: genId(`t-b${i}`),
         name: `${tableModal.data.name} ${tableModal.bulkStart + i}`,
@@ -169,46 +206,78 @@ const Tables: React.FC = () => {
       ? { ...z, tables: z.tables.map(t => t.id === tableId
           ? { ...t, status: t.status === 'active' ? 'inactive' : 'active' } : t) } : z));
 
-  /* ── Field helpers ── */
   const setZoneField = (k: keyof typeof INIT_ZONE, v: string) =>
     setZoneModal(prev => ({ ...prev, data: { ...prev.data, [k]: v } }));
-
   const setTableField = (k: keyof typeof INIT_TABLE, v: string | number) =>
     setTableModal(prev => ({ ...prev, data: { ...prev.data, [k]: v } }));
 
-  /* ── Render ── */
+  /* ── Shared input class ── */
+  const inputCls = "h-10 px-3.5 border border-gray-200 rounded-[9px] text-[13.5px] text-gray-900 bg-gray-50 outline-none transition-all focus:border-[#3dba74] focus:shadow-[0_0_0_3px_rgba(61,186,116,0.15)] focus:bg-white font-[inherit] w-full";
+
   return (
-    <div className="tb-page">
-      {/* ── SIDEBAR khu vực ── */}
-      <aside className="tb-sidebar">
-        <div className="tb-sidebar-header">
-          <span className="tb-sidebar-title"><FontAwesomeIcon icon={faLayerGroup} /> Khu vực</span>
-          <button className="tb-add-zone-btn" onClick={openAddZone} title="Thêm khu vực">
+    <div className="flex bg-[#f4f6f8] overflow-hidden font-['Segoe_UI',sans-serif]" style={{ height: 'calc(100vh - 96px)' }}>
+
+      {/* ── SIDEBAR ── */}
+      <aside className="w-[220px] shrink-0 bg-white border-r border-[#e8eaed] flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 pt-3.5 pb-2.5 border-b border-gray-100">
+          <span className="text-[12px] font-bold text-[#888] uppercase tracking-[0.5px] flex items-center gap-1.5">
+            <FontAwesomeIcon icon={faLayerGroup} /> Khu vực
+          </span>
+          <button
+            onClick={openAddZone}
+            title="Thêm khu vực"
+            className="w-[26px] h-[26px] border-none rounded-[6px] bg-[#f0fbf5] text-[#3dba74] cursor-pointer text-[12px] flex items-center justify-center font-bold transition-all hover:bg-[#3dba74] hover:text-white"
+          >
             <FontAwesomeIcon icon={faPlus} />
           </button>
         </div>
 
-        <div className="tb-zone-list">
+        {/* Zone list */}
+        <div className="flex-1 overflow-y-auto px-2 py-1.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded">
           {zones.map(z => (
             <div
               key={z.id}
-              className={`tb-zone-item ${activeZone === z.id ? 'active' : ''} ${z.status === 'inactive' ? 'inactive' : ''}`}
               onClick={() => setActiveZone(z.id)}
+              className={[
+                'flex items-center justify-between px-2.5 py-[9px] rounded-lg cursor-pointer transition-all mb-0.5 gap-1.5 group',
+                activeZone === z.id ? 'bg-[#f0fbf5] shadow-[inset_3px_0_0_#3dba74]' : 'hover:bg-[#f7f8fa]',
+                z.status === 'inactive' ? 'opacity-45' : '',
+              ].join(' ')}
             >
-              <div className="tb-zone-info">
-                <span className="tb-zone-name">{z.name}</span>
-                <span className="tb-zone-count">{z.tables.length} bàn</span>
+              <div className="flex-1 min-w-0">
+                <span className={`block text-[13.5px] font-semibold truncate ${activeZone === z.id ? 'text-[#2a9e5e]' : 'text-[#1a1a1a]'}`}>
+                  {z.name}
+                </span>
+                <span className="block text-[11px] text-[#bbb] mt-px">{z.tables.length} bàn</span>
               </div>
-              <div className="tb-zone-actions" onClick={e => e.stopPropagation()}>
-                <button className="tb-icon-btn" title="Chỉnh sửa" onClick={() => openEditZone(z)}>
+              <div
+                className="flex gap-px opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ opacity: activeZone === z.id ? 1 : undefined }}
+                onClick={e => e.stopPropagation()}
+              >
+                <button
+                  title="Chỉnh sửa"
+                  onClick={() => openEditZone(z)}
+                  className="w-6 h-6 border-none bg-transparent rounded-[5px] cursor-pointer text-[11px] text-[#bbb] flex items-center justify-center transition-all hover:bg-[#f0f0f0] hover:text-[#555]"
+                >
                   <FontAwesomeIcon icon={faPen} />
                 </button>
-                <button className="tb-icon-btn" title={z.status === 'active' ? 'Ngừng hoạt động' : 'Cho phép hoạt động'}
-                  onClick={() => toggleZoneStatus(z.id)}>
-                  <FontAwesomeIcon icon={z.status === 'active' ? faToggleOn : faToggleOff}
-                    className={z.status === 'active' ? 'toggle-on' : 'toggle-off'} />
+                <button
+                  title={z.status === 'active' ? 'Ngừng hoạt động' : 'Cho phép hoạt động'}
+                  onClick={() => toggleZoneStatus(z.id)}
+                  className="w-6 h-6 border-none bg-transparent rounded-[5px] cursor-pointer text-[11px] text-[#bbb] flex items-center justify-center transition-all hover:bg-[#f0f0f0] hover:text-[#555]"
+                >
+                  <FontAwesomeIcon
+                    icon={z.status === 'active' ? faToggleOn : faToggleOff}
+                    className={z.status === 'active' ? 'text-[#3dba74] text-[15px]' : 'text-[#d1d5db] text-[15px]'}
+                  />
                 </button>
-                <button className="tb-icon-btn danger" title="Xoá khu vực" onClick={() => deleteZone(z.id)}>
+                <button
+                  title="Xoá khu vực"
+                  onClick={() => deleteZone(z.id)}
+                  className="w-6 h-6 border-none bg-transparent rounded-[5px] cursor-pointer text-[11px] text-[#bbb] flex items-center justify-center transition-all hover:bg-[#fff1f1] hover:text-[#e03e3e]"
+                >
                   <FontAwesomeIcon icon={faTrash} />
                 </button>
               </div>
@@ -218,30 +287,46 @@ const Tables: React.FC = () => {
       </aside>
 
       {/* ── MAIN ── */}
-      <main className="tb-main">
+      <main className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Toolbar */}
-        <div className="tb-toolbar">
-          <div className="tb-toolbar-left">
-            <h2 className="tb-zone-title">
+        <div className="flex items-center justify-between px-5 py-3.5 bg-white border-b border-[#e8eaed] shrink-0 gap-3 flex-wrap">
+          <div className="flex flex-col gap-0.5">
+            <h2 className="text-[18px] font-extrabold text-gray-900 m-0 flex items-center gap-2">
               {currentZone?.name ?? '—'}
-              {currentZone?.status === 'inactive' && <span className="tb-inactive-badge">Ngừng HĐ</span>}
+              {currentZone?.status === 'inactive' && (
+                <span className="text-[10.5px] font-semibold bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full border border-gray-200">
+                  Ngừng HĐ
+                </span>
+              )}
             </h2>
-            {currentZone?.note && <span className="tb-zone-note">{currentZone.note}</span>}
+            {currentZone?.note && <span className="text-[12px] text-[#aaa]">{currentZone.note}</span>}
           </div>
-          <div className="tb-toolbar-right">
+          <div className="flex items-center gap-2">
             {/* View switch */}
-            <div className="tb-view-switch">
-              <button className={`tb-view-btn ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')}>
+            <div className="flex bg-[#f4f5f7] rounded-lg p-[3px] gap-0.5">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`w-8 h-7 border-none rounded-[6px] cursor-pointer text-[13px] flex items-center justify-center transition-all ${viewMode === 'grid' ? 'bg-white text-[#2a9e5e] shadow-[0_1px_4px_rgba(0,0,0,0.1)]' : 'bg-transparent text-[#aaa]'}`}
+              >
                 <FontAwesomeIcon icon={faTableCells} />
               </button>
-              <button className={`tb-view-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')}>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`w-8 h-7 border-none rounded-[6px] cursor-pointer text-[13px] flex items-center justify-center transition-all ${viewMode === 'list' ? 'bg-white text-[#2a9e5e] shadow-[0_1px_4px_rgba(0,0,0,0.1)]' : 'bg-transparent text-[#aaa]'}`}
+              >
                 <FontAwesomeIcon icon={faList} />
               </button>
             </div>
-            <button className="tb-btn-outline" onClick={openBulkTable}>
+            <button
+              onClick={openBulkTable}
+              className="flex items-center gap-1.5 h-9 px-3.5 border border-gray-300 bg-white rounded-lg text-[13px] font-semibold text-gray-700 cursor-pointer transition-all whitespace-nowrap hover:border-[#3dba74] hover:text-[#3dba74] hover:bg-[#f0fbf5]"
+            >
               <FontAwesomeIcon icon={faPlus} /> Thêm hàng loạt
             </button>
-            <button className="tb-btn-primary" onClick={openAddTable}>
+            <button
+              onClick={openAddTable}
+              className="flex items-center gap-1.5 h-9 px-4 border-none bg-[#3dba74] rounded-lg text-[13px] font-bold text-white cursor-pointer transition-all whitespace-nowrap hover:bg-[#31a862] hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(61,186,116,0.3)] active:translate-y-0"
+            >
               <FontAwesomeIcon icon={faPlus} /> Thêm phòng/bàn
             </button>
           </div>
@@ -249,39 +334,72 @@ const Tables: React.FC = () => {
 
         {/* Content */}
         {!currentZone || currentZone.tables.length === 0 ? (
-          <div className="tb-empty">
-            <FontAwesomeIcon icon={faBoxOpen} className="tb-empty-icon" />
-            <p>Khu vực này chưa có phòng/bàn nào</p>
-            <button className="tb-btn-primary" onClick={openAddTable}>
+          <div className="flex-1 flex flex-col items-center justify-center gap-3.5">
+            <FontAwesomeIcon icon={faBoxOpen} className="text-[48px] text-gray-200" />
+            <p className="text-[14px] text-[#9ca3af] m-0">Khu vực này chưa có phòng/bàn nào</p>
+            <button
+              onClick={openAddTable}
+              className="flex items-center gap-1.5 h-9 px-4 border-none bg-[#3dba74] rounded-lg text-[13px] font-bold text-white cursor-pointer transition-all hover:bg-[#31a862]"
+            >
               <FontAwesomeIcon icon={faPlus} /> Thêm phòng/bàn đầu tiên
             </button>
           </div>
         ) : viewMode === 'grid' ? (
           /* ── Grid view ── */
-          <div className="tb-grid">
+          <div className="flex-1 p-5 grid gap-3.5 overflow-y-auto content-start [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded"
+            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))' }}
+          >
             {currentZone.tables.map(t => (
-              <div key={t.id} className={`tb-card ${t.status === 'inactive' ? 'tb-card-inactive' : ''}`}>
-                <div className="tb-card-top">
-                  <span className="tb-card-name">{t.name}</span>
-                  <div className="tb-card-status-dot" title={t.status === 'active' ? 'Hoạt động' : 'Ngừng HĐ'}
-                    style={{ background: t.status === 'active' ? '#3dba74' : '#d1d5db' }} />
+              <div
+                key={t.id}
+                className={[
+                  'bg-white rounded-2xl px-4 pt-[18px] pb-3.5 border flex flex-col gap-2.5 transition-all relative cursor-default',
+                  t.status === 'inactive'
+                    ? 'opacity-50 border-dashed border-gray-200 hover:border-gray-300'
+                    : 'border-[1.5px] border-[#f0f0f0] hover:border-[#3dba74] hover:shadow-[0_6px_24px_rgba(61,186,116,0.12)] hover:-translate-y-0.5',
+                ].join(' ')}
+              >
+                {/* Card top */}
+                <div className="flex items-start justify-between gap-1.5">
+                  <span className="text-[15px] font-bold text-gray-900 leading-snug">{t.name}</span>
+                  <div
+                    title={t.status === 'active' ? 'Hoạt động' : 'Ngừng HĐ'}
+                    className="w-[9px] h-[9px] rounded-full shrink-0 mt-1 shadow-[0_0_0_2px_rgba(255,255,255,0.8)]"
+                    style={{ background: t.status === 'active' ? '#3dba74' : '#d1d5db' }}
+                  />
                 </div>
-                <div className="tb-card-seats">
-                  <FontAwesomeIcon icon={faChair} className="tb-chair-icon" />
+                <div className="flex items-center gap-1.5 text-[12.5px] text-gray-500 font-medium">
+                  <FontAwesomeIcon icon={faChair} className="text-[#9ca3af] text-[11px]" />
                   <span>{t.seats} ghế</span>
                 </div>
-                {t.note && <p className="tb-card-note">{t.note}</p>}
-                <div className="tb-card-actions">
-                  <button className="tb-card-btn edit" onClick={() => openEditTable(t)}>
+                {t.note && (
+                  <p className="text-[11.5px] text-[#9ca3af] m-0 italic truncate">{t.note}</p>
+                )}
+                {/* Divider */}
+                <div className="h-px bg-[#f5f5f5] -mx-1" />
+                {/* Actions */}
+                <div className="flex gap-1.5 pt-0.5">
+                  <button
+                    onClick={() => openEditTable(t)}
+                    className="flex-1 h-7 border-none rounded-[7px] text-[11.5px] font-semibold cursor-pointer flex items-center justify-center gap-1 transition-all bg-[#eff6ff] text-[#3b82f6] hover:bg-[#dbeafe]"
+                  >
                     <FontAwesomeIcon icon={faPen} /> Sửa
                   </button>
                   <button
-                    className={`tb-card-btn toggle ${t.status === 'active' ? 'deactivate' : 'activate'}`}
                     onClick={() => toggleTableStatus(t.id)}
+                    className={[
+                      'flex-[1.5] h-7 border-none rounded-[7px] text-[11px] font-semibold cursor-pointer flex items-center justify-center transition-all',
+                      t.status === 'active'
+                        ? 'bg-[#fff7ed] text-[#ea580c] hover:bg-[#fed7aa]'
+                        : 'bg-[#f0fdf4] text-[#16a34a] hover:bg-[#bbf7d0]',
+                    ].join(' ')}
                   >
                     {t.status === 'active' ? 'Ngừng HĐ' : 'Hoạt động'}
                   </button>
-                  <button className="tb-card-btn delete" onClick={() => deleteTable(t.id)}>
+                  <button
+                    onClick={() => deleteTable(t.id)}
+                    className="flex-[0.7] h-7 border-none rounded-[7px] text-[11.5px] cursor-pointer flex items-center justify-center transition-all bg-[#fff1f2] text-[#e11d48] hover:bg-[#fecdd3]"
+                  >
                     <FontAwesomeIcon icon={faTrash} />
                   </button>
                 </div>
@@ -290,37 +408,56 @@ const Tables: React.FC = () => {
           </div>
         ) : (
           /* ── List view ── */
-          <div className="tb-list-wrap">
-            <div className="tb-list-head tb-list-row">
-              <div className="tb-lc tb-lc-name">Tên phòng/bàn</div>
-              <div className="tb-lc tb-lc-seats">Số ghế</div>
-              <div className="tb-lc tb-lc-note">Ghi chú</div>
-              <div className="tb-lc tb-lc-status">Trạng thái</div>
-              <div className="tb-lc tb-lc-actions">Thao tác</div>
+          <div className="flex-1 overflow-y-auto m-4 bg-white rounded-xl border border-[#e8eaed] overflow-hidden [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded">
+            {/* Head */}
+            <div className="grid border-b border-[#e8eaed] bg-[#f9fafb] sticky top-0 z-[1]"
+              style={{ gridTemplateColumns: '2fr 90px 2fr 140px 100px' }}
+            >
+              {['Tên phòng/bàn', 'Số ghế', 'Ghi chú', 'Trạng thái', 'Thao tác'].map(col => (
+                <div key={col} className="px-4 py-3 text-[12px] text-[#9ca3af] font-bold uppercase tracking-[0.3px]">{col}</div>
+              ))}
             </div>
+            {/* Rows */}
             {currentZone.tables.map((t, i) => (
-              <div key={t.id} className={`tb-list-row ${i % 2 === 1 ? 'alt' : ''} ${t.status === 'inactive' ? 'row-inactive' : ''}`}>
-                <div className="tb-lc tb-lc-name">
-                  <span className="tb-list-name">{t.name}</span>
+              <div
+                key={t.id}
+                className={[
+                  'grid border-b border-[#f5f5f5] items-center transition-colors',
+                  i % 2 === 1 ? 'bg-[#fafafa] hover:bg-[#f4f5f7]' : 'hover:bg-[#fafbfc]',
+                  t.status === 'inactive' ? 'opacity-45' : '',
+                ].join(' ')}
+                style={{ gridTemplateColumns: '2fr 90px 2fr 140px 100px' }}
+              >
+                <div className="px-4 py-3">
+                  <span className="font-semibold text-gray-900 text-[13.5px]">{t.name}</span>
                 </div>
-                <div className="tb-lc tb-lc-seats">
-                  <FontAwesomeIcon icon={faChair} className="tb-chair-icon" /> {t.seats}
+                <div className="px-4 py-3 text-[13.5px] text-gray-700 flex items-center gap-1.5">
+                  <FontAwesomeIcon icon={faChair} className="text-[#9ca3af] text-[11px]" /> {t.seats}
                 </div>
-                <div className="tb-lc tb-lc-note">{t.note || '—'}</div>
-                <div className="tb-lc tb-lc-status">
-                  <button className="tb-toggle-btn" onClick={() => toggleTableStatus(t.id)}>
+                <div className="px-4 py-3 text-[13.5px] text-gray-700">{t.note || '—'}</div>
+                <div className="px-4 py-3">
+                  <button
+                    onClick={() => toggleTableStatus(t.id)}
+                    className="inline-flex items-center gap-1.5 border-none bg-transparent cursor-pointer text-[13px] text-gray-500 px-2 py-[5px] rounded-md transition-colors hover:bg-gray-100 font-[inherit]"
+                  >
                     <FontAwesomeIcon
                       icon={t.status === 'active' ? faToggleOn : faToggleOff}
-                      className={t.status === 'active' ? 'toggle-on' : 'toggle-off'}
+                      className={t.status === 'active' ? 'text-[#3dba74] text-[15px]' : 'text-[#d1d5db] text-[15px]'}
                     />
                     <span>{t.status === 'active' ? 'Hoạt động' : 'Ngừng HĐ'}</span>
                   </button>
                 </div>
-                <div className="tb-lc tb-lc-actions">
-                  <button className="tb-action-btn edit-btn" onClick={() => openEditTable(t)}>
+                <div className="px-4 py-3 flex items-center gap-1.5">
+                  <button
+                    onClick={() => openEditTable(t)}
+                    className="w-[30px] h-[30px] border-none rounded-[7px] cursor-pointer text-[12px] inline-flex items-center justify-center transition-all bg-[#eff6ff] text-[#3b82f6] hover:bg-[#dbeafe]"
+                  >
                     <FontAwesomeIcon icon={faPen} />
                   </button>
-                  <button className="tb-action-btn delete-btn" onClick={() => deleteTable(t.id)}>
+                  <button
+                    onClick={() => deleteTable(t.id)}
+                    className="w-[30px] h-[30px] border-none rounded-[7px] cursor-pointer text-[12px] inline-flex items-center justify-center transition-all bg-[#fff1f2] text-[#e11d48] hover:bg-[#fecdd3]"
+                  >
                     <FontAwesomeIcon icon={faTrash} />
                   </button>
                 </div>
@@ -337,16 +474,26 @@ const Tables: React.FC = () => {
           onClose={() => setZoneModal(v => ({ ...v, open: false }))}
           onSave={saveZone}
         >
-          <div className="tb-form">
-            <div className="tb-field">
-              <label className="tb-label">Tên khu vực <span className="tb-required">*</span></label>
-              <input className="tb-input" placeholder="VD: Tầng 1, Sân vườn..."
-                value={zoneModal.data.name} onChange={e => setZoneField('name', e.target.value)} />
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[12.5px] font-bold text-gray-700">
+                Tên khu vực <span className="text-[#e11d48]">*</span>
+              </label>
+              <input
+                className={inputCls}
+                placeholder="VD: Tầng 1, Sân vườn..."
+                value={zoneModal.data.name}
+                onChange={e => setZoneField('name', e.target.value)}
+              />
             </div>
-            <div className="tb-field">
-              <label className="tb-label">Ghi chú</label>
-              <input className="tb-input" placeholder="Ghi chú thêm..."
-                value={zoneModal.data.note} onChange={e => setZoneField('note', e.target.value)} />
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[12.5px] font-bold text-gray-700">Ghi chú</label>
+              <input
+                className={inputCls}
+                placeholder="Ghi chú thêm..."
+                value={zoneModal.data.note}
+                onChange={e => setZoneField('note', e.target.value)}
+              />
             </div>
           </div>
         </Modal>
@@ -355,71 +502,110 @@ const Tables: React.FC = () => {
       {/* ── Modal phòng/bàn ── */}
       {tableModal.open && (
         <Modal
-          title={tableModal.mode === 'add' ? 'Thêm phòng/bàn' : tableModal.mode === 'edit' ? 'Chỉnh sửa phòng/bàn' : 'Thêm hàng loạt'}
+          title={
+            tableModal.mode === 'add' ? 'Thêm phòng/bàn'
+            : tableModal.mode === 'edit' ? 'Chỉnh sửa phòng/bàn'
+            : 'Thêm hàng loạt'
+          }
           onClose={() => setTableModal(v => ({ ...v, open: false }))}
           onSave={saveTable}
         >
-          <div className="tb-form">
+          <div className="flex flex-col gap-4">
             {tableModal.mode === 'bulk' ? (
               <>
-                <div className="tb-field">
-                  <label className="tb-label">Tên phòng/bàn <span className="tb-required">*</span></label>
-                  <input className="tb-input" placeholder="VD: Bàn"
-                    value={tableModal.data.name} onChange={e => setTableField('name', e.target.value)} />
-                  <span className="tb-hint">Hệ thống sẽ tự thêm số: Bàn 1, Bàn 2...</span>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[12.5px] font-bold text-gray-700">
+                    Tên phòng/bàn <span className="text-[#e11d48]">*</span>
+                  </label>
+                  <input
+                    className={inputCls}
+                    placeholder="VD: Bàn"
+                    value={tableModal.data.name}
+                    onChange={e => setTableField('name', e.target.value)}
+                  />
+                  <span className="text-[11.5px] text-[#9ca3af]">Hệ thống sẽ tự thêm số: Bàn 1, Bàn 2...</span>
                 </div>
-                <div className="tb-row">
-                  <div className="tb-field">
-                    <label className="tb-label">Số lượng</label>
-                    <input className="tb-input" type="number" min={1} max={100}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[12.5px] font-bold text-gray-700">Số lượng</label>
+                    <input
+                      className={inputCls}
+                      type="number" min={1} max={100}
                       value={tableModal.bulkCount}
-                      onChange={e => setTableModal(v => ({ ...v, bulkCount: parseInt(e.target.value) || 1 }))} />
+                      onChange={e => setTableModal(v => ({ ...v, bulkCount: parseInt(e.target.value) || 1 }))}
+                    />
                   </div>
-                  <div className="tb-field">
-                    <label className="tb-label">Số bắt đầu</label>
-                    <input className="tb-input" type="number" min={1}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[12.5px] font-bold text-gray-700">Số bắt đầu</label>
+                    <input
+                      className={inputCls}
+                      type="number" min={1}
                       value={tableModal.bulkStart}
-                      onChange={e => setTableModal(v => ({ ...v, bulkStart: parseInt(e.target.value) || 1 }))} />
+                      onChange={e => setTableModal(v => ({ ...v, bulkStart: parseInt(e.target.value) || 1 }))}
+                    />
                   </div>
                 </div>
-                <div className="tb-field">
-                  <label className="tb-label">Số ghế mỗi bàn</label>
-                  <input className="tb-input" type="number" min={1}
-                    value={tableModal.data.seats} onChange={e => setTableField('seats', parseInt(e.target.value) || 1)} />
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[12.5px] font-bold text-gray-700">Số ghế mỗi bàn</label>
+                  <input
+                    className={inputCls}
+                    type="number" min={1}
+                    value={tableModal.data.seats}
+                    onChange={e => setTableField('seats', parseInt(e.target.value) || 1)}
+                  />
                 </div>
-                <div className="tb-bulk-preview">
+                <div className="bg-[#f0fdf4] border border-[#bbf7d0] rounded-[9px] px-3.5 py-[11px] text-[13px] text-[#16a34a] font-medium">
                   Sẽ tạo: <strong>{tableModal.bulkCount}</strong> bàn —{' '}
                   {tableModal.data.name} {tableModal.bulkStart} → {tableModal.data.name} {tableModal.bulkStart + tableModal.bulkCount - 1}
                 </div>
               </>
             ) : (
               <>
-                <div className="tb-field">
-                  <label className="tb-label">Tên phòng/bàn <span className="tb-required">*</span></label>
-                  <input className="tb-input" placeholder="VD: Bàn 01, Phòng VIP..."
-                    value={tableModal.data.name} onChange={e => setTableField('name', e.target.value)} />
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[12.5px] font-bold text-gray-700">
+                    Tên phòng/bàn <span className="text-[#e11d48]">*</span>
+                  </label>
+                  <input
+                    className={inputCls}
+                    placeholder="VD: Bàn 01, Phòng VIP..."
+                    value={tableModal.data.name}
+                    onChange={e => setTableField('name', e.target.value)}
+                  />
                 </div>
-                <div className="tb-row">
-                  <div className="tb-field">
-                    <label className="tb-label">Số ghế</label>
-                    <input className="tb-input" type="number" min={1}
-                      value={tableModal.data.seats} onChange={e => setTableField('seats', parseInt(e.target.value) || 1)} />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[12.5px] font-bold text-gray-700">Số ghế</label>
+                    <input
+                      className={inputCls}
+                      type="number" min={1}
+                      value={tableModal.data.seats}
+                      onChange={e => setTableField('seats', parseInt(e.target.value) || 1)}
+                    />
                   </div>
-                  <div className="tb-field">
-                    <label className="tb-label">Trạng thái</label>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[12.5px] font-bold text-gray-700">Trạng thái</label>
                     <button
-                      className={`tb-status-toggle ${tableModal.data.status === 'active' ? 'on' : 'off'}`}
                       onClick={() => setTableField('status', tableModal.data.status === 'active' ? 'inactive' : 'active')}
+                      className={[
+                        'flex items-center gap-2 h-10 px-3.5 rounded-[9px] border cursor-pointer text-[13px] font-semibold bg-none transition-all font-[inherit]',
+                        tableModal.data.status === 'active'
+                          ? 'border-[#3dba74] text-[#16a34a] bg-[#f0fdf4]'
+                          : 'border-gray-200 text-[#9ca3af] bg-[#f9fafb]',
+                      ].join(' ')}
                     >
                       <FontAwesomeIcon icon={tableModal.data.status === 'active' ? faToggleOn : faToggleOff} />
                       {tableModal.data.status === 'active' ? 'Hoạt động' : 'Ngừng HĐ'}
                     </button>
                   </div>
                 </div>
-                <div className="tb-field">
-                  <label className="tb-label">Ghi chú</label>
-                  <input className="tb-input" placeholder="Ghi chú thêm..."
-                    value={tableModal.data.note} onChange={e => setTableField('note', e.target.value)} />
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[12.5px] font-bold text-gray-700">Ghi chú</label>
+                  <input
+                    className={inputCls}
+                    placeholder="Ghi chú thêm..."
+                    value={tableModal.data.note}
+                    onChange={e => setTableField('note', e.target.value)}
+                  />
                 </div>
               </>
             )}

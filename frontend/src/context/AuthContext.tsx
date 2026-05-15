@@ -1,18 +1,17 @@
+// src/context/AuthContext.tsx
+// Import UserRole và User từ types.ts — KHÔNG khai báo lại
 import React, {
   createContext,
   useContext,
   useState,
   useEffect,
-  useCallback
+  useCallback,
 } from 'react';
 import api from '../api/api';
+import type { User } from '../types';
 
-export interface User {
-  id: number;
-  fullName: string;
-  email: string;
-  role: string;
-}
+// Re-export để các file cũ import từ AuthContext vẫn hoạt động
+export type { UserRole, User } from '../types';
 
 interface AuthContextType {
   user: User | null;
@@ -25,51 +24,36 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-
-  // loading = true để chờ verify session
   const [loading, setLoading] = useState(true);
 
-  // ✅ Logout
   const logout = useCallback(async () => {
     try {
       await api.post('/auth/logout');
-    } catch (error) {
-      // ignore lỗi
+    } catch {
+      // ignore — cookie vẫn sẽ bị clear phía server
     } finally {
       setUser(null);
     }
   }, []);
 
-  // ✅ Verify session khi reload trang
+  // Verify session khi reload trang (cookie tự gửi kèm)
   useEffect(() => {
-    const verifySession = async () => {
-      try {
-        // Cookie sẽ tự được gửi kèm request
-        const { data } = await api.get('/auth/me');
-        setUser(data.user);
-      } catch (error) {
-        // Không có cookie hoặc token hết hạn
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    verifySession();
+    api.get('/auth/me')
+      .then(({ data }) => setUser(data.user))
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
   }, []);
 
-  // ✅ Lắng nghe logout từ interceptor (refresh fail)
+  // Lắng nghe khi interceptor báo refresh fail → force logout
   useEffect(() => {
     const handler = () => setUser(null);
     window.addEventListener('auth:logout', handler);
     return () => window.removeEventListener('auth:logout', handler);
   }, []);
 
-  // ✅ Login
   const login = async (email: string, password: string) => {
     const { data } = await api.post('/auth/login', { email, password });
-
-    // Backend đã set cookie → chỉ cần lưu user vào state
+    // BE đã set HttpOnly cookie → chỉ cần lưu user vào state
     setUser(data.user);
   };
 
@@ -80,11 +64,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-// Hook dùng cho toàn app
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error('useAuth must be used inside AuthProvider');
-  }
+  if (!ctx) throw new Error('useAuth must be used inside AuthProvider');
   return ctx;
 };

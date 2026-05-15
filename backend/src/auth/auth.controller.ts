@@ -158,6 +158,6 @@ export class AuthController {
   @Get("me")
   @UseGuards(JwtAuthGuard)
   async getMe(@CurrentUser() user: JwtPayload) {
-    return { user };
+    return this.authService.getMe(user.sub);
   }
 }

@@ -1,7 +1,34 @@
 {
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ]
+  "compilerOptions": {
+    "composite": true,
+    "tsBuildInfoFile": "./node_modules/.cache/tsconfig.app.tsbuildinfo",
+    "target": "ESNext",
+    "useDefineForClassFields": true,
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "types": ["vite/client"],
+    
+    "allowJs": true,      // Cho phép nhập tệp .js và .jsx
+    "checkJs": false,     // Không bắt lỗi TypeScript bên trong tệp .js
+    "noImplicitAny": false,
+
+    /* Quan trọng nhất cho React */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx", // Dòng này giúp VS Code hiểu các thẻ <div />, <button />
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src",
+  "src/**/*.d.ts"
+  ] // Đảm bảo thư mục src của bạn nằm trong phạm vi này
 }
