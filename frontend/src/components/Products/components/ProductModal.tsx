@@ -3,8 +3,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faXmark, faImage, faToggleOn, faToggleOff, faChevronDown,
 } from '@fortawesome/free-solid-svg-icons';
-import type { Category } from '../../api/products.api';
-import type { ProductForm } from '../../types';
+import type { Category } from '../../../api/products.api';
+import type { ProductForm } from '../../../types';
 
 const MENU_TYPE_OPTIONS = [
   { value: 'beverage', label: 'Đồ uống' },

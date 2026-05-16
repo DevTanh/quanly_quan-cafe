@@ -32,30 +32,43 @@ const diffCls = (diff: number | null) => {
 };
 
 const StockCheck: React.FC = () => {
-  const [products,    setProducts]    = useState<ProductAPI[]>([]);
-  const [categories,  setCategories]  = useState<string[]>([]);
-  const [loading,     setLoading]     = useState(true);
-  const [submitting,  setSubmitting]  = useState(false);
-  const [step,        setStep]        = useState<Step>('input');
-  const [mode,        setMode]        = useState<'all' | 'select'>('all');
-  const [search,      setSearch]      = useState('');
-  const [filterCat,   setFilterCat]   = useState('Tất cả');
-  const [checker,     setChecker]     = useState('');
-  const [checkerErr,  setCheckerErr]  = useState(false);
-  const [rows,        setRows]        = useState<StockCheckRow[]>([]);
+  const [products, setProducts] = useState<ProductAPI[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [step, setStep] = useState<Step>('input');
+  const [mode, setMode] = useState<'all' | 'select'>('all');
+  const [search, setSearch] = useState('');
+  const [filterCat, setFilterCat] = useState('Tất cả');
+  const [checker, setChecker] = useState('');
+  const [checkerErr, setCheckerErr] = useState(false);
+  const [rows, setRows] = useState<StockCheckRow[]>([]);
   const [reviewItems, setReviewItems] = useState<ReviewItem[]>([]);
-  const [history,     setHistory]     = useState<HistoryRecord[]>([]);
-  const [tab,         setTab]         = useState<'check' | 'history'>('check');
+  const [history, setHistory] = useState<HistoryRecord[]>([]);
+  const [tab, setTab] = useState<'check' | 'history'>('check');
 
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await inventoryApi.getProducts();
-      const data = res.data.data;
+
+      const data = await inventoryApi.getProducts();
+
       setProducts(data);
-      setCategories(['Tất cả', ...Array.from(new Set(data.map(p => p.category.name)))]);
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
+
+      setCategories([
+        'Tất cả',
+        ...Array.from(
+          new Set<string>(
+            data.map(p => p.category.name)
+          )
+        )
+      ]);
+
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
@@ -79,13 +92,13 @@ const StockCheck: React.FC = () => {
     return rows;
   }, [mode, rows, finiteProducts]);
 
-  const isInRows  = (id: number) => rows.some(r => r.product.id === id);
-  const getRow    = (id: number) => rows.find(r => r.product.id === id);
-  const getDiff   = (p: ProductAPI, s: string) => s === '' ? null : parseInt(s, 10) - p.stock;
+  const isInRows = (id: number) => rows.some(r => r.product.id === id);
+  const getRow = (id: number) => rows.find(r => r.product.id === id);
+  const getDiff = (p: ProductAPI, s: string) => s === '' ? null : parseInt(s, 10) - p.stock;
 
   const toggleSelect = (p: ProductAPI) => {
     if (isInRows(p.id)) setRows(prev => prev.filter(r => r.product.id !== p.id));
-    else                setRows(prev => [...prev, { product: p, actualStock: '', note: '' }]);
+    else setRows(prev => [...prev, { product: p, actualStock: '', note: '' }]);
   };
 
   const setActual = (id: number, val: string) => {
@@ -168,10 +181,10 @@ const StockCheck: React.FC = () => {
   };
 
   const reviewStats = useMemo(() => ({
-    over:       reviewItems.filter(i => i.diff > 0).length,
-    under:      reviewItems.filter(i => i.diff < 0).length,
-    match:      reviewItems.filter(i => i.diff === 0).length,
-    totalOver:  reviewItems.filter(i => i.diff > 0).reduce((s, i) => s + i.diff, 0),
+    over: reviewItems.filter(i => i.diff > 0).length,
+    under: reviewItems.filter(i => i.diff < 0).length,
+    match: reviewItems.filter(i => i.diff === 0).length,
+    totalOver: reviewItems.filter(i => i.diff > 0).reduce((s, i) => s + i.diff, 0),
     totalUnder: reviewItems.filter(i => i.diff < 0).reduce((s, i) => s + i.diff, 0),
   }), [reviewItems]);
 
@@ -184,18 +197,16 @@ const StockCheck: React.FC = () => {
             <div className={`flex-1 h-0.5 mx-3 transition-colors ${i <= currentStep ? 'bg-green-500' : 'bg-gray-200'}`} />
           )}
           <div className="flex items-center gap-2 flex-shrink-0">
-            <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-              i < currentStep  ? 'bg-green-50 text-green-500' :
+            <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${i < currentStep ? 'bg-green-50 text-green-500' :
               i === currentStep ? 'bg-green-500 text-white' :
-                                  'bg-gray-200 text-gray-400'
-            }`}>
+                'bg-gray-200 text-gray-400'
+              }`}>
               {i < currentStep ? <FontAwesomeIcon icon={faCheckCircle} className="text-sm" /> : i + 1}
             </span>
-            <span className={`text-[13px] font-semibold transition-colors ${
-              i < currentStep  ? 'text-green-500' :
+            <span className={`text-[13px] font-semibold transition-colors ${i < currentStep ? 'text-green-500' :
               i === currentStep ? 'text-gray-900' :
-                                  'text-gray-400'
-            }`}>{label}</span>
+                'text-gray-400'
+              }`}>{label}</span>
           </div>
         </React.Fragment>
       ))}
@@ -212,9 +223,9 @@ const StockCheck: React.FC = () => {
 
   const DiffBadge = ({ diff }: { diff: number | null }) => {
     if (diff === null) return <span className="text-gray-300 text-base">—</span>;
-    if (diff === 0)  return <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[12.5px] font-bold bg-green-50 text-green-700"><FontAwesomeIcon icon={faMinus} /> Khớp</span>;
-    if (diff > 0)    return <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[12.5px] font-bold bg-blue-50 text-blue-700"><FontAwesomeIcon icon={faArrowUp} /> +{diff}</span>;
-    return               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[12.5px] font-bold bg-red-50 text-red-700"><FontAwesomeIcon icon={faArrowDown} /> {diff}</span>;
+    if (diff === 0) return <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[12.5px] font-bold bg-green-50 text-green-700"><FontAwesomeIcon icon={faMinus} /> Khớp</span>;
+    if (diff > 0) return <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[12.5px] font-bold bg-blue-50 text-blue-700"><FontAwesomeIcon icon={faArrowUp} /> +{diff}</span>;
+    return <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[12.5px] font-bold bg-red-50 text-red-700"><FontAwesomeIcon icon={faArrowDown} /> {diff}</span>;
   };
 
   if (loading) return (
@@ -368,9 +379,9 @@ const StockCheck: React.FC = () => {
                   <div className="flex gap-3.5 flex-wrap">
                     {[
                       { label: `Đã nhập: ${stats.filled}/${stats.total}`, cls: 'text-gray-700' },
-                      { label: `Thừa: ${stats.over}`,  cls: 'text-blue-700' },
+                      { label: `Thừa: ${stats.over}`, cls: 'text-blue-700' },
                       { label: `Thiếu: ${stats.under}`, cls: 'text-red-600' },
-                      { label: `Khớp: ${stats.match}`,  cls: 'text-green-600' },
+                      { label: `Khớp: ${stats.match}`, cls: 'text-green-600' },
                     ].map(s => (
                       <span key={s.label} className={`text-[12.5px] font-semibold ${s.cls}`}>{s.label}</span>
                     ))}
@@ -380,8 +391,8 @@ const StockCheck: React.FC = () => {
                   <TableHead />
                   {activeRows.map((r, i) => {
                     const actualStr = getRow(r.product.id)?.actualStock ?? r.actualStock;
-                    const diff      = getDiff(r.product, actualStr);
-                    const note      = getRow(r.product.id)?.note ?? '';
+                    const diff = getDiff(r.product, actualStr);
+                    const note = getRow(r.product.id)?.note ?? '';
                     return (
                       <div key={r.product.id} className={`grid [grid-template-columns:2fr_1fr_110px_110px_110px_1.5fr] border-b border-gray-50 last:border-b-0 ${i % 2 === 1 ? 'bg-gray-50/50' : ''}`}>
                         <div className="px-3.5 py-2.5 flex flex-col gap-0.5">
@@ -396,12 +407,11 @@ const StockCheck: React.FC = () => {
                         </div>
                         <div className="px-3.5 py-2.5 flex items-center">
                           <input
-                            className={`w-20 h-[34px] px-2.5 border-[1.5px] rounded-lg text-sm font-bold text-center outline-none transition-all font-[inherit] ${
-                              diff !== null && diff < 0 ? 'border-red-400 bg-red-50 text-red-700' :
+                            className={`w-20 h-[34px] px-2.5 border-[1.5px] rounded-lg text-sm font-bold text-center outline-none transition-all font-[inherit] ${diff !== null && diff < 0 ? 'border-red-400 bg-red-50 text-red-700' :
                               diff !== null && diff > 0 ? 'border-blue-400 bg-blue-50 text-blue-700' :
-                              diff === 0               ? 'border-green-400 bg-green-50 text-green-700' :
-                                                          'border-gray-200 bg-gray-50 focus:border-green-500 focus:shadow-[0_0_0_3px_rgba(61,186,116,0.1)] focus:bg-white'
-                            }`}
+                                diff === 0 ? 'border-green-400 bg-green-50 text-green-700' :
+                                  'border-gray-200 bg-gray-50 focus:border-green-500 focus:shadow-[0_0_0_3px_rgba(61,186,116,0.1)] focus:bg-white'
+                              }`}
                             placeholder="Nhập..."
                             value={actualStr}
                             onChange={e => setActual(r.product.id, e.target.value)}

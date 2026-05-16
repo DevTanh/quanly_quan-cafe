@@ -29,9 +29,9 @@ const parseHours = (start: string, end: string) => {
   const [eh, em] = end.split(':').map(Number);
   return Math.max(0, (eh * 60 + em - sh * 60 - sm) / 60);
 };
-const fmt     = (n: number) => n.toLocaleString('vi-VN') + 'đ';
-const toKey   = (d: Date)   => d.toISOString().slice(0, 10);
-const isToday = (d: Date)   => toKey(d) === toKey(new Date());
+const fmt = (n: number) => n.toLocaleString('vi-VN') + 'đ';
+const toKey = (d: Date) => d.toISOString().slice(0, 10);
+const isToday = (d: Date) => toKey(d) === toKey(new Date());
 
 const getWeekDates = (base: Date): Date[] => {
   const day = base.getDay();
@@ -45,27 +45,27 @@ const getWeekDates = (base: Date): Date[] => {
 const DAYS_VI = ['CN', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy'];
 
 const INIT_SHIFTS: Shift[] = [
-  { id: 'ca-sang',  name: 'Ca sáng',  startTime: '08:00', endTime: '12:00' },
+  { id: 'ca-sang', name: 'Ca sáng', startTime: '08:00', endTime: '12:00' },
   { id: 'ca-chieu', name: 'Ca chiều', startTime: '13:00', endTime: '17:00' },
-  { id: 'ca-toi',   name: 'Ca tối',   startTime: '18:00', endTime: '22:00' },
+  { id: 'ca-toi', name: 'Ca tối', startTime: '18:00', endTime: '22:00' },
 ];
 
 const STATUS_CONFIG: Record<AttendanceStatus, { label: string; color: string; bg: string; border: string }> = {
-  'on-time': { label: 'Đúng giờ',         color: '#1d4ed8', bg: '#dbeafe', border: '#1d4ed8' },
-  'late':    { label: 'Đi muộn / Về sớm', color: '#7c3aed', bg: '#ede9fe', border: '#7c3aed' },
-  'missing': { label: 'Chấm công thiếu',  color: '#b91c1c', bg: '#fee2e2', border: '#b91c1c' },
-  'pending': { label: 'Chưa chấm công',   color: '#9a3412', bg: '#fed7aa', border: '#9a3412' },
-  'off':     { label: 'Nghỉ làm',         color: '#6b7280', bg: '#f3f4f6', border: '#6b7280' },
+  'on-time': { label: 'Đúng giờ', color: '#1d4ed8', bg: '#dbeafe', border: '#1d4ed8' },
+  'late': { label: 'Đi muộn / Về sớm', color: '#7c3aed', bg: '#ede9fe', border: '#7c3aed' },
+  'missing': { label: 'Chấm công thiếu', color: '#b91c1c', bg: '#fee2e2', border: '#b91c1c' },
+  'pending': { label: 'Chưa chấm công', color: '#9a3412', bg: '#fed7aa', border: '#9a3412' },
+  'off': { label: 'Nghỉ làm', color: '#6b7280', bg: '#f3f4f6', border: '#6b7280' },
 };
 
-const today_str     = toKey(new Date());
+const today_str = toKey(new Date());
 const yesterday_str = toKey(new Date(Date.now() - 86400000));
 
 const INIT_ENTRIES: AttendanceEntry[] = [
-  { employeeId: 'NV0001', date: today_str,     shiftName: 'Ca chiều', status: 'pending' },
-  { employeeId: 'NV0002', date: yesterday_str, shiftName: 'Ca sáng',  status: 'on-time', checkIn: '08:02', checkOut: '12:05' },
-  { employeeId: 'NV0003', date: yesterday_str, shiftName: 'Ca tối',   status: 'late',    checkIn: '18:25', checkOut: '22:00' },
-  { employeeId: 'NV0004', date: today_str,     shiftName: 'Ca sáng',  status: 'pending' },
+  { employeeId: 'NV0001', date: today_str, shiftName: 'Ca chiều', status: 'pending' },
+  { employeeId: 'NV0002', date: yesterday_str, shiftName: 'Ca sáng', status: 'on-time', checkIn: '08:02', checkOut: '12:05' },
+  { employeeId: 'NV0003', date: yesterday_str, shiftName: 'Ca tối', status: 'late', checkIn: '18:25', checkOut: '22:00' },
+  { employeeId: 'NV0004', date: today_str, shiftName: 'Ca sáng', status: 'pending' },
 ];
 
 const INIT_SALARY: SalarySetting[] = [
@@ -81,23 +81,23 @@ const INIT_SALARY: SalarySetting[] = [
 
 /* ── Component ── */
 const Attendance: React.FC = () => {
-  const [baseDate,     setBaseDate]     = useState(new Date());
-  const [shifts,       setShifts]       = useState<Shift[]>(INIT_SHIFTS);
-  const [entries,      setEntries]      = useState<AttendanceEntry[]>(INIT_ENTRIES);
-  const [salaries,     setSalaries]     = useState<SalarySetting[]>(INIT_SALARY);
-  const [viewMode,     setViewMode]     = useState<'shift' | 'employee'>('shift');
-  const [searchEmp,    setSearchEmp]    = useState('');
+  const [baseDate, setBaseDate] = useState(new Date());
+  const [shifts, setShifts] = useState<Shift[]>(INIT_SHIFTS);
+  const [entries, setEntries] = useState<AttendanceEntry[]>(INIT_ENTRIES);
+  const [salaries, setSalaries] = useState<SalarySetting[]>(INIT_SALARY);
+  const [viewMode, setViewMode] = useState<'shift' | 'employee'>('shift');
+  const [searchEmp, setSearchEmp] = useState('');
   const [addShiftOpen, setAddShiftOpen] = useState(false);
-  const [newShift,     setNewShift]     = useState({ name: '', startTime: '08:00', endTime: '12:00' });
-  const [salaryOpen,   setSalaryOpen]   = useState(false);
-  const [salaryEdit,   setSalaryEdit]   = useState<Record<string, string>>({});
+  const [newShift, setNewShift] = useState({ name: '', startTime: '08:00', endTime: '12:00' });
+  const [salaryOpen, setSalaryOpen] = useState(false);
+  const [salaryEdit, setSalaryEdit] = useState<Record<string, string>>({});
 
   const employees = employeesData.employees.filter(e => e.status === 'active');
   const weekDates = useMemo(() => getWeekDates(baseDate), [baseDate]);
   const weekLabel = `Tuần ${Math.ceil(weekDates[0].getDate() / 7)} - Th. ${weekDates[0].getMonth() + 1} ${weekDates[0].getFullYear()}`;
 
-  const getRate     = (empId: string) => salaries.find(s => s.employeeId === empId)?.ratePerHour ?? 25000;
-  const shiftHours  = (name: string)  => { const s = shifts.find(s => s.name === name); return s ? parseHours(s.startTime, s.endTime) : 0; };
+  const getRate = (empId: string) => salaries.find(s => s.employeeId === empId)?.ratePerHour ?? 25000;
+  const shiftHours = (name: string) => { const s = shifts.find(s => s.name === name); return s ? parseHours(s.startTime, s.endTime) : 0; };
 
   const weeklyWage = (empId: string) => {
     const rate = getRate(empId);
@@ -270,7 +270,7 @@ const Attendance: React.FC = () => {
                   {weekDates.map((d, i) => {
                     const key = toKey(d);
                     const dayEntries = entries.filter(e => e.shiftName === shift.name && e.date === key);
-                    const filtered   = searchEmp
+                    const filtered = searchEmp
                       ? dayEntries.filter(e => { const emp = employees.find(em => em.id === e.employeeId); return emp?.name.toLowerCase().includes(searchEmp.toLowerCase()); })
                       : dayEntries;
 
@@ -280,26 +280,26 @@ const Attendance: React.FC = () => {
                           {filtered.length === 0
                             ? <p className="text-xs text-slate-300 italic m-auto text-center">Chọn để xếp nhân viên làm ca.</p>
                             : filtered.map(entry => {
-                                const emp  = employees.find(em => em.id === entry.employeeId);
-                                const cfg  = STATUS_CONFIG[entry.status];
-                                const wage = entry.status !== 'off' && entry.status !== 'missing' ? hours * getRate(entry.employeeId) : 0;
-                                return (
-                                  <div
-                                    key={entry.employeeId}
-                                    className="px-3 py-2 rounded-lg cursor-pointer hover:translate-x-[3px] hover:brightness-95 transition-all border-l-[3px]"
-                                    style={{ background: cfg.bg, borderLeftColor: cfg.color }}
-                                    onClick={() => cycleStatus(shift.name, entry.employeeId, key)}
-                                    title="Click để đổi trạng thái"
-                                  >
-                                    <span className="block text-[13px] font-bold text-slate-900">{emp?.name}</span>
-                                    <span className="block text-[11.5px] text-slate-500 my-0.5">{entry.checkIn || '--'} – {entry.checkOut || '--'}</span>
-                                    <div className="flex items-center justify-between gap-1.5">
-                                      <span className="text-[11px] font-bold" style={{ color: cfg.color }}>{cfg.label}</span>
-                                      {wage > 0 && <span className="text-[11px] font-bold text-amber-600 bg-amber-50 px-1.5 py-px rounded">{fmt(wage)}</span>}
-                                    </div>
+                              const emp = employees.find(em => em.id === entry.employeeId);
+                              const cfg = STATUS_CONFIG[entry.status];
+                              const wage = entry.status !== 'off' && entry.status !== 'missing' ? hours * getRate(entry.employeeId) : 0;
+                              return (
+                                <div
+                                  key={entry.employeeId}
+                                  className="px-3 py-2 rounded-lg cursor-pointer hover:translate-x-[3px] hover:brightness-95 transition-all border-l-[3px]"
+                                  style={{ background: cfg.bg, borderLeftColor: cfg.color }}
+                                  onClick={() => cycleStatus(shift.name, entry.employeeId, key)}
+                                  title="Click để đổi trạng thái"
+                                >
+                                  <span className="block text-[13px] font-bold text-slate-900">{emp?.name}</span>
+                                  <span className="block text-[11.5px] text-slate-500 my-0.5">{entry.checkIn || '--'} – {entry.checkOut || '--'}</span>
+                                  <div className="flex items-center justify-between gap-1.5">
+                                    <span className="text-[11px] font-bold" style={{ color: cfg.color }}>{cfg.label}</span>
+                                    {wage > 0 && <span className="text-[11px] font-bold text-amber-600 bg-amber-50 px-1.5 py-px rounded">{fmt(wage)}</span>}
                                   </div>
-                                );
-                              })
+                                </div>
+                              );
+                            })
                           }
                         </div>
                       </td>

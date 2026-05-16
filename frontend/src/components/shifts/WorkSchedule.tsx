@@ -19,9 +19,9 @@ interface ShiftEntry {
 }
 
 const SHIFTS = [
-  { name: 'Ca sáng',  color: '#bbf7d0', textColor: '#166534', time: '08:00 - 12:00' },
+  { name: 'Ca sáng', color: '#bbf7d0', textColor: '#166534', time: '08:00 - 12:00' },
   { name: 'Ca chiều', color: '#bfdbfe', textColor: '#1e40af', time: '13:00 - 17:00' },
-  { name: 'Ca tối',   color: '#fed7aa', textColor: '#9a3412', time: '18:00 - 22:00' },
+  { name: 'Ca tối', color: '#fed7aa', textColor: '#9a3412', time: '18:00 - 22:00' },
 ];
 
 const DAYS_VI = ['CN', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy'];
@@ -37,31 +37,31 @@ const getWeekDates = (base: Date): Date[] => {
   });
 };
 
-const toKey   = (d: Date) => d.toISOString().slice(0, 10);
+const toKey = (d: Date) => d.toISOString().slice(0, 10);
 const isToday = (d: Date) => toKey(d) === toKey(new Date());
-const fmt     = (n: number) => n.toLocaleString('vi-VN');
-const genId   = () => `e-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+const fmt = (n: number) => n.toLocaleString('vi-VN');
+const genId = () => `e-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 const WAGE_PER_SHIFT = 80_000;
 
 /* fake initial data */
-const today    = toKey(new Date());
+const today = toKey(new Date());
 const tomorrow = toKey(new Date(Date.now() + 86400000));
 const INIT_ENTRIES: ShiftEntry[] = [
-  { id: genId(), employeeId: 'NV0001', date: today,    shiftName: 'Ca sáng',  shiftColor: '#bbf7d0', shiftTextColor: '#166534' },
-  { id: genId(), employeeId: 'NV0001', date: today,    shiftName: 'Ca tối',   shiftColor: '#fed7aa', shiftTextColor: '#9a3412' },
-  { id: genId(), employeeId: 'NV0002', date: today,    shiftName: 'Ca chiều', shiftColor: '#bfdbfe', shiftTextColor: '#1e40af' },
-  { id: genId(), employeeId: 'NV0003', date: tomorrow, shiftName: 'Ca sáng',  shiftColor: '#bbf7d0', shiftTextColor: '#166534' },
+  { id: genId(), employeeId: 'NV0001', date: today, shiftName: 'Ca sáng', shiftColor: '#bbf7d0', shiftTextColor: '#166534' },
+  { id: genId(), employeeId: 'NV0001', date: today, shiftName: 'Ca tối', shiftColor: '#fed7aa', shiftTextColor: '#9a3412' },
+  { id: genId(), employeeId: 'NV0002', date: today, shiftName: 'Ca chiều', shiftColor: '#bfdbfe', shiftTextColor: '#1e40af' },
+  { id: genId(), employeeId: 'NV0003', date: tomorrow, shiftName: 'Ca sáng', shiftColor: '#bbf7d0', shiftTextColor: '#166534' },
 ];
 
 const WorkSchedule: React.FC = () => {
-  const [baseDate,  setBaseDate]  = useState(new Date());
-  const [entries,   setEntries]   = useState<ShiftEntry[]>(INIT_ENTRIES);
+  const [baseDate, setBaseDate] = useState(new Date());
+  const [entries, setEntries] = useState<ShiftEntry[]>(INIT_ENTRIES);
   const [searchEmp, setSearchEmp] = useState('');
-  const [modal, setModal]         = useState<{ open: boolean; empId: string; date: string }>({ open: false, empId: '', date: '' });
+  const [modal, setModal] = useState<{ open: boolean; empId: string; date: string }>({ open: false, empId: '', date: '' });
   const [checkedShifts, setCheckedShifts] = useState<string[]>([]);
 
-  const employees  = employeesData.employees.filter(e => e.status === 'active');
-  const weekDates  = useMemo(() => getWeekDates(baseDate), [baseDate]);
+  const employees = employeesData.employees.filter(e => e.status === 'active');
+  const weekDates = useMemo(() => getWeekDates(baseDate), [baseDate]);
 
   const filteredEmps = employees.filter(e =>
     e.name.toLowerCase().includes(searchEmp.toLowerCase()) ||
@@ -107,7 +107,7 @@ const WorkSchedule: React.FC = () => {
 
   const grandTotal = employees.reduce((s, e) => s + totalWage(e.id), 0);
 
-  const modalEmp  = employees.find(e => e.id === modal.empId);
+  const modalEmp = employees.find(e => e.id === modal.empId);
   const modalDate = modal.date
     ? new Date(modal.date + 'T00:00:00').toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit' })
     : '';
@@ -199,7 +199,7 @@ const WorkSchedule: React.FC = () => {
                   <span className="block text-[11px] text-gray-400 mt-0.5 font-mono">{emp.id}</span>
                 </td>
                 {weekDates.map((d, i) => {
-                  const key   = toKey(d);
+                  const key = toKey(d);
                   const cells = getEntries(emp.id, key);
                   return (
                     <td

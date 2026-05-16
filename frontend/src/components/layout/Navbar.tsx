@@ -2,7 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faChartPie, faBoxes, faChair, faExchangeAlt,
-  faUsers, faChartBar, faFileInvoice, faTag, faChevronDown,
+  faUsers, faChartBar,
+  // faFileInvoice,
+  faTag, faChevronDown,
 } from '@fortawesome/free-solid-svg-icons';
 
 /* ── Inline permissions (fix lỗi import) ── */
@@ -75,7 +77,7 @@ interface NavbarProps {
 const Navbar: React.FC<NavbarProps> = ({
   activePage,
   onNavigate,
-  onOpenBooking,
+  // onOpenBooking,
   navColor,
   userRole,
 }) => {
@@ -124,8 +126,8 @@ const Navbar: React.FC<NavbarProps> = ({
               <a
                 href="#"
                 className={`flex items-center gap-1.5 px-3.5 h-11 text-[13.5px] font-medium no-underline whitespace-nowrap transition-colors border-b-[3px] ${isActive
-                    ? 'text-white bg-white/15 border-white font-semibold'
-                    : 'text-white/90 border-transparent hover:bg-white/12 hover:text-white'
+                  ? 'text-white bg-white/15 border-white font-semibold'
+                  : 'text-white/90 border-transparent hover:bg-white/12 hover:text-white'
                   }`}
                 onClick={e => handleNavClick(item, e)}
               >
