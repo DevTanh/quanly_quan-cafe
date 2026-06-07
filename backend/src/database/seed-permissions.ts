@@ -95,6 +95,17 @@ const PERMISSIONS: { name: string; description: string; module: PermissionModule
   { name: "product:manage", description: "Thêm/sửa/xóa hàng hóa và danh mục", module: PermissionModule.PRODUCT },
 ]
 
+const DEMO_PERMISSION_TARGET = 100
+const demoPermissionCount = Math.max(0, DEMO_PERMISSION_TARGET - PERMISSIONS.length)
+
+for (let index = 1; index <= demoPermissionCount; index++) {
+  PERMISSIONS.push({
+    name: `system:demo_permission_${String(index).padStart(3, "0")}`,
+    description: `Demo permission ${String(index).padStart(3, "0")}`,
+    module: PermissionModule.SYSTEM,
+  })
+}
+
 // ─── MAPPING ROLE → PERMISSION NAMES ────────────────────────────────────────
 
 const ROLE_PERMISSIONS: Record<string, string[]> = {

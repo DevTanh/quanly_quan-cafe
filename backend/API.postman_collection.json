@@ -1,0 +1,3973 @@
+{
+  "info": {
+    "_postman_id": "415aff5b-cc23-4666-b97d-a0bbad7fb9e5",
+    "name": "Quản Lý Quán Cafe - API Collection",
+    "description": "Complete API collection for the Cafe Management System.\n\n**Auth mechanism:** HTTP-only cookies (access_token + refresh_token) are set automatically on login/refresh.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "26684378"
+  },
+  "item": [
+    {
+      "name": "Shifts (Ca làm việc)",
+      "item": [
+        {
+          "name": "Tạo ca sáng",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ca sáng\",\n  \"startTime\": \"06:00\",\n  \"endTime\": \"14:00\",\n  \"maxStaff\": 5,\n  \"description\": \"Ca sáng thường ngày\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/shifts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shifts"
+              ]
+            },
+            "description": "Tạo ca sáng 06:00–14:00, max 5 nhân viên.\nisOvernight = false, totalHours = 8.0 (tự động tính)"
+          },
+          "response": []
+        },
+        {
+          "name": "Tạo ca chiều",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ca chiều\",\n  \"startTime\": \"14:00\",\n  \"endTime\": \"22:00\",\n  \"maxStaff\": 5,\n  \"description\": \"Ca chiều thường ngày\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/shifts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shifts"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Tạo ca đêm (qua đêm)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ca đêm\",\n  \"startTime\": \"22:00\",\n  \"endTime\": \"06:00\",\n  \"maxStaff\": 3,\n  \"description\": \"Ca đêm qua ngày\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/shifts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shifts"
+              ]
+            },
+            "description": "Ca đêm 22:00–06:00.\nisOvernight = true, totalHours = 8.0 (tự động tính qua đêm)"
+          },
+          "response": []
+        },
+        {
+          "name": "Danh sách ca (active)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shifts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shifts"
+              ]
+            },
+            "description": "Lấy danh sách ca active. Permission: shift:view_own (tất cả roles)"
+          },
+          "response": []
+        },
+        {
+          "name": "Danh sách tất cả ca (cả inactive)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shifts/all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shifts",
+                "all"
+              ]
+            },
+            "description": "Lấy tất cả ca kể cả inactive. Permission: shift:manage (Admin/Manager)"
+          },
+          "response": []
+        },
+        {
+          "name": "Chi tiết ca (id=1)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shifts/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shifts",
+                "1"
+              ]
+            },
+            "description": "Xem chi tiết 1 ca. Đổi :id trong URL."
+          },
+          "response": []
+        },
+        {
+          "name": "Cập nhật ca (id=1)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"maxStaff\": 8,\n  \"description\": \"Ca sáng - tăng nhân sự2\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/shifts/2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shifts",
+                "2"
+              ]
+            },
+            "description": "Cập nhật ca. Chỉ gửi fields cần sửa.\n\n⚠️ Không sửa được startTime/endTime nếu có phân ca tương lai."
+          },
+          "response": []
+        },
+        {
+          "name": "Deactivate ca (id=1)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/shifts/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shifts",
+                "1"
+              ]
+            },
+            "description": "Vô hiệu hóa ca (không xóa). Phân ca hiện có vẫn giữ nguyên."
+          },
+          "response": []
+        },
+        {
+          "name": "Xóa ca (id=1)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shifts/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shifts",
+                "1"
+              ]
+            },
+            "description": "Xóa ca. ⚠️ Reject nếu có phân ca tương lai → deactivate thay vì xóa."
+          },
+          "response": []
+        },
+        {
+          "name": "❌ Test: Tạo ca trùng tên",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ca sáng\",\n  \"startTime\": \"07:00\",\n  \"endTime\": \"15:00\",\n  \"maxStaff\": 5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/shifts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shifts"
+              ]
+            },
+            "description": "Expect: 409 Conflict - Tên ca đã tồn tại"
+          },
+          "response": []
+        },
+        {
+          "name": "❌ Test: maxStaff < 3",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ca test\",\n  \"startTime\": \"08:00\",\n  \"endTime\": \"16:00\",\n  \"maxStaff\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/shifts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shifts"
+              ]
+            },
+            "description": "Expect: 400 Bad Request - Tối thiểu 3 nhân viên"
+          },
+          "response": []
+        },
+        {
+          "name": "❌ Test: start = end",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ca loi\",\n  \"startTime\": \"08:00\",\n  \"endTime\": \"08:00\",\n  \"maxStaff\": 5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/shifts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shifts"
+              ]
+            },
+            "description": "Expect: 400 Bad Request - start_time = end_time"
+          },
+          "response": []
+        }
+      ],
+      "description": "CRUD ca làm việc mẫu.\nPermission: shift:view_own (xem), shift:manage (tạo/sửa/xóa)"
+    },
+    {
+      "name": "Shift Assignments (Phân ca)",
+      "item": [
+        {
+          "name": "Phân ca đơn",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 2,\n  \"shiftId\": 1,\n  \"workDate\": \"2026-03-05\",\n  \"note\": \"Phân ca thường\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/shift-assignments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shift-assignments"
+              ]
+            },
+            "description": "Phân 1 nhân viên vào 1 ca trong 1 ngày.\n\nValidation:\n- User phải active\n- Không phân ca ngày quá khứ\n- Không trùng ca\n- Không overlap thời gian\n- Không vượt max_staff\n\nResponse có field warnings nếu thiếu nhân sự tối thiểu."
+          },
+          "response": []
+        },
+        {
+          "name": "Phân ca hàng loạt (Bulk)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shiftId\": 1,\n  \"userIds\": [2, 3],\n  \"workDates\": [\"2026-03-06\", \"2026-03-07\", \"2026-03-08\"],\n  \"note\": \"Lịch tuần đầu tháng 3\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/shift-assignments/bulk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shift-assignments",
+                "bulk"
+              ]
+            },
+            "description": "Phân ca cho nhiều user × nhiều ngày.\nPartial success: tạo phần OK, trả chi tiết lỗi từng dòng.\n\nResponse:\n- created: số tạo thành công\n- failed: số thất bại\n- failures: [{ userId, workDate, reason }]\n- warnings: cảnh báo thiếu nhân sự"
+          },
+          "response": []
+        },
+        {
+          "name": "Danh sách phân ca (filter)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shift-assignments?startDate=2026-03-01&endDate=2026-03-31",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shift-assignments"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2026-03-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-03-31"
+                },
+                {
+                  "key": "userId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "shiftId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "scheduled",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Lấy danh sách phân ca với filter.\nPermission: shift:view_all (Admin/Manager)\n\nParams tùy chọn:\n- startDate, endDate: khoảng ngày\n- userId: lọc theo nhân viên\n- shiftId: lọc theo ca\n- status: scheduled | absent"
+          },
+          "response": []
+        },
+        {
+          "name": "Lịch cá nhân",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shift-assignments/my?startDate=2026-03-01&endDate=2026-03-31",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shift-assignments",
+                "my"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2026-03-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-03-31"
+                }
+              ]
+            },
+            "description": "Xem lịch làm việc cá nhân.\nPermission: shift:view_own (tất cả roles)\nChỉ trả lịch của user đang đăng nhập."
+          },
+          "response": []
+        },
+        {
+          "name": "Lịch tuần (grid view)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shift-assignments/week?date=2026-03-05",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shift-assignments",
+                "week"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2026-03-05"
+                }
+              ]
+            },
+            "description": "Lịch tuần dạng grid cho Manager.\nTruyền bất kỳ ngày nào trong tuần → trả lịch cả tuần (Mon–Sun).\n\nResponse format:\n{ \"Mon\": { \"1\": [...assignments], \"2\": [...] }, \"Tue\": ... }"
+          },
+          "response": []
+        },
+        {
+          "name": "Chi tiết phân ca (id=1)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shift-assignments/2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shift-assignments",
+                "2"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cập nhật phân ca (id=1)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Ghi chú cập nhật\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/shift-assignments/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shift-assignments",
+                "1"
+              ]
+            },
+            "description": "Sửa phân ca: đổi note, đánh dấu absent.\nPermission: shift:manage"
+          },
+          "response": []
+        },
+        {
+          "name": "Đánh dấu vắng mặt (id=1)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"absent\",\n  \"note\": \"Nghỉ không phép\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/shift-assignments/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shift-assignments",
+                "1"
+              ]
+            },
+            "description": "⚠️ Chỉ đánh dấu absent cho ngày đã qua hoặc hôm nay.\nReject nếu ngày tương lai."
+          },
+          "response": []
+        },
+        {
+          "name": "Xóa phân ca (id=1)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shift-assignments/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shift-assignments",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "❌ Test: Phân ca user bị khóa",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 10,\n  \"shiftId\": 1,\n  \"workDate\": \"2026-03-10\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/shift-assignments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shift-assignments"
+              ]
+            },
+            "description": "Expect: 404 - Nhân viên không tồn tại"
+          },
+          "response": []
+        },
+        {
+          "name": "❌ Test: Phân ca ngày quá khứ",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 2,\n  \"shiftId\": 1,\n  \"workDate\": \"2025-01-01\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/shift-assignments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shift-assignments"
+              ]
+            },
+            "description": "Expect: 400 - Không thể tạo phân ca cho ngày đã qua"
+          },
+          "response": []
+        },
+        {
+          "name": "❌ Test: Phân ca trùng",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 2,\n  \"shiftId\": 1,\n  \"workDate\": \"2026-03-05\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/shift-assignments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shift-assignments"
+              ]
+            },
+            "description": "Expect: 409 Conflict - Nhân viên đã được phân ca này trong ngày\n(Chạy sau khi đã tạo phân ca ở request 'Phân ca đơn')"
+          },
+          "response": []
+        },
+        {
+          "name": "❌ Test: Absent ngày tương lai",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"absent\",\n  \"note\": \"Test absent ngày tương lai\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/shift-assignments/2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shift-assignments",
+                "2"
+              ]
+            },
+            "description": "Expect: 400 - Chỉ được đánh dấu vắng mặt cho ngày đã qua hoặc hôm nay\n(Chạy với assignment có workDate trong tương lai)"
+          },
+          "response": []
+        }
+      ],
+      "description": "Phân ca cho nhân viên.\nPermission: shift:view_own (xem cá nhân), shift:view_all (xem tất cả), shift:manage (phân ca)"
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\",\n  \"deviceId\": \"postman-device-001\",\n  \"deviceName\": \"Postman Test\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Đăng nhập hệ thống. Trả về thông tin user + set HTTP-only cookies (access_token, refresh_token).\n\n**Permissions:** Public (không cần đăng nhập)"
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "Làm mới access token bằng refresh token trong cookie. Áp dụng refresh token rotation.\n\n**Permissions:** Public (chỉ cần có refresh_token cookie)"
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Đăng xuất thiết bị hiện tại. Revoke session tương ứng với refresh token trong cookie.\n\n**Permissions:** Public"
+          },
+          "response": []
+        },
+        {
+          "name": "Logout All Devices",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout-all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout-all"
+              ]
+            },
+            "description": "Đăng xuất tất cả thiết bị của chính mình. Revoke toàn bộ sessions.\n\n**Permissions:** `auth:logout_all`"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Own Devices",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/devices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "devices"
+              ]
+            },
+            "description": "Xem danh sách thiết bị đang đăng nhập của chính mình.\n\n**Permissions:** `auth:view_devices`"
+          },
+          "response": []
+        },
+        {
+          "name": "Revoke Own Device",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/devices/{{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "devices",
+                "{{sessionId}}"
+              ]
+            },
+            "description": "Thu hồi 1 session/thiết bị cụ thể của chính mình.\n\n**Permissions:** `auth:revoke_device`"
+          },
+          "response": []
+        },
+        {
+          "name": "Force Logout User (All Devices)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/force-logout/{{targetUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "force-logout",
+                "{{targetUserId}}"
+              ]
+            },
+            "description": "**Admin** thu hồi TOÀN BỘ session của một user bất kỳ. Tăng tokenVersion → invalidate access token ngay lập tức.\n\n**Permissions:** `user:revoke_token`\n\n**Use case:** Khi sa thải nhân viên hoặc phát hiện tài khoản bị xâm nhập."
+          },
+          "response": []
+        },
+        {
+          "name": "Force Logout User Device",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/force-logout/{{targetUserId}}/device/{{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "force-logout",
+                "{{targetUserId}}",
+                "device",
+                "{{sessionId}}"
+              ]
+            },
+            "description": "**Admin** thu hồi 1 thiết bị cụ thể của user.\n\n**Permissions:** `user:revoke_token`"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Devices (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/devices/user/{{targetUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "devices",
+                "user",
+                "{{targetUserId}}"
+              ]
+            },
+            "description": "**Admin** xem danh sách thiết bị đang đăng nhập của một user bất kỳ.\n\n**Permissions:** `user:view_auth_logs`"
+          },
+          "response": []
+        }
+      ],
+      "description": "Authentication endpoints: login, logout, refresh, devices, force-logout."
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Nguyễn Văn A\",\n  \"email\": \"nva@cafe.com\",\n  \"phone\": \"0901234567\",\n  \"password\": \"123456\",\n  \"role\": \"staff\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "create"
+              ]
+            },
+            "description": "Tạo tài khoản nhân viên mới.\n\n**Permissions:** `user:create`\n\n**Roles:** admin, manager, cashier, staff, barista"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "description": "Lấy danh sách tất cả nhân viên.\n\n**Permissions:** `user:view_list`"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{targetUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{targetUserId}}"
+              ]
+            },
+            "description": "Xem chi tiết 1 nhân viên.\n\n**Permissions:** `user:view_detail`"
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Nguyễn Văn B\",\n  \"phone\": \"0909876543\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{targetUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{targetUserId}}"
+              ]
+            },
+            "description": "Cập nhật thông tin nhân viên.\n\n**Permissions:** `user:update`"
+          },
+          "response": []
+        },
+        {
+          "name": "Disable/Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{targetUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{targetUserId}}"
+              ]
+            },
+            "description": "Khóa/xóa tài khoản nhân viên.\n\n**Permissions:** `user:disable`"
+          },
+          "response": []
+        }
+      ],
+      "description": "User management endpoints (Admin only for most operations)."
+    },
+    {
+      "name": "Permissions",
+      "item": [
+        {
+          "name": "Get All Permissions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "permissions"
+              ]
+            },
+            "description": "Lấy danh sách tất cả permissions.\n\n**Permissions:** `system:config`"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Permission by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/permissions/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "permissions",
+                "1"
+              ]
+            },
+            "description": "Lấy chi tiết 1 permission.\n\n**Permissions:** `system:config`"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Permission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"test:new_permission\",\n  \"description\": \"Test permission\",\n  \"module\": \"system\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "permissions"
+              ]
+            },
+            "description": "Tạo permission mới.\n\n**Permissions:** `system:config`\n\n**Modules:** auth, user, order, payment, menu, table, inventory, customer, shift, report, system"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Permission",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Updated description\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/permissions/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "permissions",
+                "1"
+              ]
+            },
+            "description": "Cập nhật permission.\n\n**Permissions:** `system:config`"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Permission",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/permissions/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "permissions",
+                "1"
+              ]
+            },
+            "description": "Xóa permission (cascade xóa role_permissions liên quan).\n\n**Permissions:** `system:config`"
+          },
+          "response": []
+        }
+      ],
+      "description": "Permission CRUD endpoints (Admin - system:config)."
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "GET — List products (paginated)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET — Search products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products?search=cà phê&page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "cà phê"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET — Filter by menuType",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products?menuType=beverage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "menuType",
+                  "value": "beverage"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET — Filter by category + status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products?categoryId=1&status=active",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "categoryId",
+                  "value": "1"
+                },
+                {
+                  "key": "status",
+                  "value": "active"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET — Product by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST — Create product (with image)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Cà phê đen đá",
+                  "type": "text"
+                },
+                {
+                  "key": "menuType",
+                  "value": "beverage",
+                  "type": "text"
+                },
+                {
+                  "key": "categoryId",
+                  "value": "4",
+                  "type": "text"
+                },
+                {
+                  "key": "costPrice",
+                  "value": "10000",
+                  "type": "text"
+                },
+                {
+                  "key": "sellingPrice",
+                  "value": "25000",
+                  "type": "text"
+                },
+                {
+                  "key": "stock",
+                  "value": "100",
+                  "type": "text"
+                },
+                {
+                  "key": "minStock",
+                  "value": "10",
+                  "type": "text"
+                },
+                {
+                  "key": "maxStock",
+                  "value": "200",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": "postman-cloud:///1f15024a-1dce-4890-bfde-26e4c6845250"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST — Create product (no image)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Bánh mì",
+                  "type": "text"
+                },
+                {
+                  "key": "menuType",
+                  "value": "food",
+                  "type": "text"
+                },
+                {
+                  "key": "categoryId",
+                  "value": "5",
+                  "type": "text"
+                },
+                {
+                  "key": "costPrice",
+                  "value": "8000",
+                  "type": "text"
+                },
+                {
+                  "key": "sellingPrice",
+                  "value": "15000",
+                  "type": "text"
+                },
+                {
+                  "key": "stock",
+                  "value": "50",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST — Create product (with code)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "code",
+                  "value": "CF001",
+                  "type": "text"
+                },
+                {
+                  "key": "name",
+                  "value": "Latte",
+                  "type": "text"
+                },
+                {
+                  "key": "menuType",
+                  "value": "beverage",
+                  "type": "text"
+                },
+                {
+                  "key": "categoryId",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "sellingPrice",
+                  "value": "45000",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH — Update product",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Cà phê đen đá (updated)",
+                  "type": "text"
+                },
+                {
+                  "key": "sellingPrice",
+                  "value": "30000",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH — Update product image",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "value": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH — Deactivate product",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "status",
+                  "value": "inactive",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE — Delete product",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET — Download Excel template",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products/template/excel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products",
+                "template",
+                "excel"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET — Export products to Excel",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products/export/excel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products",
+                "export",
+                "excel"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST — Import products from Excel",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "value": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products/import/excel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products",
+                "import",
+                "excel"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "ERR — Duplicate product code",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "code",
+                  "value": "SP000001",
+                  "type": "text"
+                },
+                {
+                  "key": "name",
+                  "value": "Test duplicate",
+                  "type": "text"
+                },
+                {
+                  "key": "menuType",
+                  "value": "other",
+                  "type": "text"
+                },
+                {
+                  "key": "categoryId",
+                  "value": "1",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "ERR — Invalid category",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Test bad category",
+                  "type": "text"
+                },
+                {
+                  "key": "menuType",
+                  "value": "food",
+                  "type": "text"
+                },
+                {
+                  "key": "categoryId",
+                  "value": "999",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "GET — List categories (active)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET — All categories (incl. inactive)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories",
+                "all"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET — Category by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST — Create category (Cà phê)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cà phê\",\n  \"description\": \"Các loại cà phê\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST — Create category (Trà)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Trà\",\n  \"description\": \"Các loại trà\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST — Create category (Sinh tố)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sinh tố\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST — Create category (Nước Ép)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nước Ép\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST — Create category (Bánh)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bánh\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST — Create category (Combo)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Combo\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST — Create category (Khác)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Khác\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH — Update category",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cà phê (updated)\",\n  \"description\": \"Updated description\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/categories/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE — Delete category",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/99",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories",
+                "99"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "ERR — Duplicate category name",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cà phê\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Role Permissions",
+      "item": [
+        {
+          "name": "Get All Roles with Permissions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/role-permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "role-permissions"
+              ]
+            },
+            "description": "Lấy tất cả permissions gom theo role.\n\n**Permissions:** `system:config`"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Permissions by Role",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/role-permissions/admin",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "role-permissions",
+                "admin"
+              ]
+            },
+            "description": "Lấy permissions của 1 role cụ thể.\n\n**Permissions:** `system:config`\n\n**Roles:** admin, manager, cashier, staff, barista"
+          },
+          "response": []
+        },
+        {
+          "name": "Sync Role Permissions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"staff\",\n  \"permissionIds\": [1, 2, 3, 14, 15, 17, 18]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/role-permissions/sync",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "role-permissions",
+                "sync"
+              ]
+            },
+            "description": "Thay thế TOÀN BỘ permissions của role bằng danh sách mới (sync).\n\n**Permissions:** `system:config`"
+          },
+          "response": []
+        },
+        {
+          "name": "Assign Permissions to Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"staff\",\n  \"permissionIds\": [10, 11]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/role-permissions/assign",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "role-permissions",
+                "assign"
+              ]
+            },
+            "description": "Thêm permissions vào role (không xóa cũ).\n\n**Permissions:** `system:config`"
+          },
+          "response": []
+        },
+        {
+          "name": "Revoke Permissions from Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"staff\",\n  \"permissionIds\": [10, 11]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/role-permissions/revoke",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "role-permissions",
+                "revoke"
+              ]
+            },
+            "description": "Gỡ permissions khỏi role.\n\n**Permissions:** `system:config`"
+          },
+          "response": []
+        }
+      ],
+      "description": "Role-Permission mapping endpoints (Admin - system:config)."
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "GET — Danh sách orders (filter)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders?tableId=1&status=pending&page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "tableId",
+                  "value": "1",
+                  "description": "Lọc theo bàn"
+                },
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "description": "pending | processing | completed | cancelled"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET — Lấy order đang treo của bàn",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders?tableId=5&status=pending",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "tableId",
+                  "value": "5"
+                },
+                {
+                  "key": "status",
+                  "value": "pending"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET — Chi tiết order",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST — Tạo order mới cho bàn",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tableId\": 5,\n  \"note\": \"Khách VIP\",\n  \"items\": [\n    {\n      \"productId\": 1,\n      \"quantity\": 2,\n      \"note\": \"Ít đá\"\n    },\n    {\n      \"productId\": 2,\n      \"quantity\": 1,\n      \"note\": \"Không đường\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH — Cập nhật items trong order",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": 1,\n  \"note\": \"Thêm món\",\n  \"items\": [\n    {\n      \"productId\": 1,\n      \"quantity\": 3,\n      \"note\": \"Ít đá\"\n    },\n    {\n      \"productId\": 2,\n      \"quantity\": 1,\n      \"note\": \"Không đường\"\n    },\n    {\n      \"productId\": 3,\n      \"quantity\": 2,\n      \"note\": \"\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders/1/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders",
+                "1",
+                "items"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST — Gửi quầy/bar pha chế",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders/1/send-to-bar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders",
+                "1",
+                "send-to-bar"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST — Thanh toán order (tiền mặt)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"method\": \"cash\",\n  \"receivedAmount\": 200000,\n  \"note\": \"Khách đưa tiền mặt\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders/1/payment",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders",
+                "1",
+                "payment"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST — Thanh toán order (chuyển khoản)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"method\": \"bank_transfer\",\n  \"note\": \"Chuyển khoản qua VietQR\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders/1/payment",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders",
+                "1",
+                "payment"
+              ]
+            },
+            "description": "Pay order by bank_transfer. Endpoint corrected from send-to-bar to payment."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH — Hủy order",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders/1/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders",
+                "1",
+                "cancel"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST - Create order tableId=0 (takeaway)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json && json.id) pm.collectionVariables.set(\"orderId\", String(json.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tableId\": 0,\n  \"note\": \"Takeaway order from Postman\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 1,\n      \"note\": \"No table\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ]
+            },
+            "description": "Tests changed OrdersService behavior: tableId=0 bypasses table validation."
+          },
+          "response": []
+        },
+        {
+          "name": "ERR - Create order with missing/inactive tableId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tableId\": 999999,\n  \"note\": \"Expected invalid table\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ]
+            },
+            "description": "Tests changed OrdersService behavior: tableId > 0 must be an active table."
+          },
+          "response": []
+        },
+        {
+          "name": "POST - Create order for active table",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json && json.id) pm.collectionVariables.set(\"orderId\", String(json.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tableId\": \"{{tableId}}\",\n  \"note\": \"Table order from Postman\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 1,\n      \"note\": \"With active table\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ]
+            },
+            "description": "Create order for table created in Tables & Zones folder."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Tables & Zones",
+      "item": [
+        {
+          "name": "GET - Zones with tables",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const list = Array.isArray(json) ? json : (json.data || []);",
+                  "if (list.length && list[0].id) pm.collectionVariables.set(\"zoneId\", String(list[0].id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/zones?include=tables",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "zones"
+              ],
+              "query": [
+                {
+                  "key": "include",
+                  "value": "tables"
+                }
+              ]
+            },
+            "description": "List zones with tables. IDs are string numbers for current FE POS compatibility."
+          },
+          "response": []
+        },
+        {
+          "name": "POST - Create zone",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json && json.id) pm.collectionVariables.set(\"zoneId\", String(json.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Zone {{$timestamp}}\",\n  \"note\": \"Created by Postman runner\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/zones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "zones"
+              ]
+            },
+            "description": "Create a zone. Requires table:manage."
+          },
+          "response": []
+        },
+        {
+          "name": "GET - Zone by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/zones/{{zoneId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "zones",
+                "{{zoneId}}"
+              ]
+            },
+            "description": "Get one zone by zoneId."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH - Update zone",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Zone Updated {{$timestamp}}\",\n  \"note\": \"Updated by Postman\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/zones/{{zoneId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "zones",
+                "{{zoneId}}"
+              ]
+            },
+            "description": "Update zone fields."
+          },
+          "response": []
+        },
+        {
+          "name": "POST - Create table",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json && json.id) pm.collectionVariables.set(\"tableId\", String(json.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"zoneId\": \"{{zoneId}}\",\n  \"name\": \"Postman Table {{$timestamp}}\",\n  \"seats\": 4,\n  \"note\": \"Created by Postman\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/tables",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tables"
+              ]
+            },
+            "description": "Create table inside an active zone. Requires table:manage."
+          },
+          "response": []
+        },
+        {
+          "name": "GET - Tables",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const list = Array.isArray(json) ? json : (json.data || []);",
+                  "if (list.length && list[0].id) pm.collectionVariables.set(\"tableId\", String(list[0].id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/tables",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tables"
+              ]
+            },
+            "description": "List tables."
+          },
+          "response": []
+        },
+        {
+          "name": "GET - Table by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/tables/{{tableId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tables",
+                "{{tableId}}"
+              ]
+            },
+            "description": "Get one table by tableId."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH - Update table",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Table Updated {{$timestamp}}\",\n  \"seats\": 6,\n  \"note\": \"Updated by Postman\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/tables/{{tableId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tables",
+                "{{tableId}}"
+              ]
+            },
+            "description": "Update table fields."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH - Deactivate table",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json && json.id) pm.collectionVariables.set(\"inactiveTableId\", String(json.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"inactive\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/tables/{{tableId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tables",
+                "{{tableId}}",
+                "status"
+              ]
+            },
+            "description": "Set table status inactive. Requires table:update_status."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH - Reactivate table",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/tables/{{tableId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tables",
+                "{{tableId}}",
+                "status"
+              ]
+            },
+            "description": "Set table status active again for order tests."
+          },
+          "response": []
+        },
+        {
+          "name": "POST - Create zone for inactive test",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json && json.id) pm.collectionVariables.set(\"inactiveZoneId\", String(json.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Inactive Test Zone {{$timestamp}}\",\n  \"note\": \"Used by negative tests\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/zones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "zones"
+              ]
+            },
+            "description": "Create a dedicated zone for negative test."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH - Deactivate inactive-test zone",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"inactive\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/zones/{{inactiveZoneId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "zones",
+                "{{inactiveZoneId}}"
+              ]
+            },
+            "description": "Deactivate inactiveZoneId before negative create table test."
+          },
+          "response": []
+        },
+        {
+          "name": "ERR - Create table in inactive zone",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"zoneId\": \"{{inactiveZoneId}}\",\n  \"name\": \"Should Fail {{$timestamp}}\",\n  \"seats\": 4,\n  \"note\": \"Expected 400\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/tables",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tables"
+              ]
+            },
+            "description": "Negative test: creating table in inactive zone must fail."
+          },
+          "response": []
+        }
+      ],
+      "description": "Plan 01 APIs: zones and tables."
+    },
+    {
+      "name": "Inventory - Stock Check",
+      "item": [
+        {
+          "name": "GET - Low stock products",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventory/low-stock",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inventory",
+                "low-stock"
+              ]
+            },
+            "description": "List active products where stock <= minStock. Requires inventory:report_low."
+          },
+          "response": []
+        },
+        {
+          "name": "POST - Create stock check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json && json.id) pm.collectionVariables.set(\"stockCheckId\", String(json.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkerName\": \"Postman Checker\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"actualStock\": 15,\n      \"note\": \"Postman stock check\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventory/stock-checks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inventory",
+                "stock-checks"
+              ]
+            },
+            "description": "Create stock check, store snapshots, and update product stock in one transaction. productId must exist."
+          },
+          "response": []
+        },
+        {
+          "name": "GET - Stock checks list",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const list = Array.isArray(json) ? json : (json.data || []);",
+                  "if (list.length && list[0].id) pm.collectionVariables.set(\"stockCheckId\", String(list[0].id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventory/stock-checks?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inventory",
+                "stock-checks"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "List stock checks with pagination."
+          },
+          "response": []
+        },
+        {
+          "name": "GET - Stock check by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventory/stock-checks/{{stockCheckId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inventory",
+                "stock-checks",
+                "{{stockCheckId}}"
+              ]
+            },
+            "description": "Get one stock check by stockCheckId."
+          },
+          "response": []
+        },
+        {
+          "name": "GET - Stock checks by date range",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventory/stock-checks?from=2026-06-01&to=2026-06-30&page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inventory",
+                "stock-checks"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-06-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-06-30"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Filter stock checks by date range."
+          },
+          "response": []
+        },
+        {
+          "name": "ERR - Create stock check with empty items",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkerName\": \"Postman Checker\",\n  \"items\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventory/stock-checks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inventory",
+                "stock-checks"
+              ]
+            },
+            "description": "Negative test: empty items must fail."
+          },
+          "response": []
+        },
+        {
+          "name": "ERR - Create stock check with negative actualStock",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkerName\": \"Postman Checker\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"actualStock\": -1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventory/stock-checks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inventory",
+                "stock-checks"
+              ]
+            },
+            "description": "Negative test: negative actualStock must fail."
+          },
+          "response": []
+        },
+        {
+          "name": "ERR - Create stock check with missing product",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 404\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkerName\": \"Postman Checker\",\n  \"items\": [\n    {\n      \"productId\": 999999,\n      \"actualStock\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventory/stock-checks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inventory",
+                "stock-checks"
+              ]
+            },
+            "description": "Negative test: missing product must fail."
+          },
+          "response": []
+        }
+      ],
+      "description": "Plan 02 APIs: inventory stock checks and low-stock report."
+    },
+    {
+      "name": "Smoke Test - New APIs",
+      "item": [
+        {
+          "name": "01 - Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\",\n  \"deviceId\": \"postman-smoke-new-apis\",\n  \"deviceName\": \"Postman Smoke Test\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login first so cookie auth is available for the rest of this folder."
+          },
+          "response": []
+        },
+        {
+          "name": "02 - Create zone",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json && json.id) pm.collectionVariables.set(\"zoneId\", String(json.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Smoke Zone {{$timestamp}}\",\n  \"note\": \"Smoke test\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/zones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "zones"
+              ]
+            },
+            "description": "Create zone and save zoneId."
+          },
+          "response": []
+        },
+        {
+          "name": "03 - Create table",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json && json.id) pm.collectionVariables.set(\"tableId\", String(json.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"zoneId\": \"{{zoneId}}\",\n  \"name\": \"Smoke Table {{$timestamp}}\",\n  \"seats\": 4,\n  \"note\": \"Smoke test\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/tables",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tables"
+              ]
+            },
+            "description": "Create table and save tableId."
+          },
+          "response": []
+        },
+        {
+          "name": "04 - Get zones with tables",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/zones?include=tables",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "zones"
+              ],
+              "query": [
+                {
+                  "key": "include",
+                  "value": "tables"
+                }
+              ]
+            },
+            "description": "Verify zones?include=tables works and returns 2xx."
+          },
+          "response": []
+        },
+        {
+          "name": "05 - Create inactive zone",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json && json.id) pm.collectionVariables.set(\"inactiveZoneId\", String(json.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Smoke Inactive Zone {{$timestamp}}\",\n  \"note\": \"Smoke negative test\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/zones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "zones"
+              ]
+            },
+            "description": "Create inactive-test zone and save inactiveZoneId."
+          },
+          "response": []
+        },
+        {
+          "name": "06 - Deactivate inactive zone",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"inactive\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/zones/{{inactiveZoneId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "zones",
+                "{{inactiveZoneId}}"
+              ]
+            },
+            "description": "Deactivate inactiveZoneId."
+          },
+          "response": []
+        },
+        {
+          "name": "07 - ERR create table in inactive zone",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"zoneId\": \"{{inactiveZoneId}}\",\n  \"name\": \"Smoke Should Fail {{$timestamp}}\",\n  \"seats\": 4\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/tables",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tables"
+              ]
+            },
+            "description": "Expected 400 when creating table in inactive zone."
+          },
+          "response": []
+        },
+        {
+          "name": "08 - Create stock check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json && json.id) pm.collectionVariables.set(\"stockCheckId\", String(json.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkerName\": \"Smoke Checker\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"actualStock\": 15,\n      \"note\": \"Smoke test\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventory/stock-checks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inventory",
+                "stock-checks"
+              ]
+            },
+            "description": "Create stock check and save stockCheckId. productId must exist."
+          },
+          "response": []
+        },
+        {
+          "name": "09 - Get stock check by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventory/stock-checks/{{stockCheckId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inventory",
+                "stock-checks",
+                "{{stockCheckId}}"
+              ]
+            },
+            "description": "Verify stock check detail."
+          },
+          "response": []
+        },
+        {
+          "name": "10 - Get low stock products",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventory/low-stock",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inventory",
+                "low-stock"
+              ]
+            },
+            "description": "Verify low-stock endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "11 - Create order tableId=0",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json && json.id) pm.collectionVariables.set(\"orderId\", String(json.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tableId\": 0,\n  \"note\": \"Smoke takeaway\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ]
+            },
+            "description": "Verify tableId=0 bypasses table validation."
+          },
+          "response": []
+        },
+        {
+          "name": "12 - ERR create order with missing table",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tableId\": 999999,\n  \"note\": \"Smoke invalid table\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ]
+            },
+            "description": "Expected 400 when tableId > 0 is not active."
+          },
+          "response": []
+        }
+      ],
+      "description": "Run this folder with Postman Collection Runner to smoke-test APIs added/changed in plan 01 and 02. Requires productId to point to an existing active product."
+    },
+    {
+      "name": "Scenarios — Luồng thực tế",
+      "item": [
+        {
+          "name": "1. Mở bàn 5 — xem order treo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders?tableId=5&status=pending",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "tableId",
+                  "value": "5"
+                },
+                {
+                  "key": "status",
+                  "value": "pending"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2. Tạo order cho bàn 5",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tableId\": 1,\n  \"items\": [\n    { \"productId\": 1, \"quantity\": 2, \"note\": \"Ít đá\" },\n    { \"productId\": 2, \"quantity\": 1 }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3. Thêm món vào order #1",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": 1,\n  \"items\": [\n    { \"productId\": 1, \"quantity\": 2, \"note\": \"Ít đá\" },\n    { \"productId\": 2, \"quantity\": 1 },\n    { \"productId\": 3, \"quantity\": 1, \"note\": \"Thêm kem\" }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders/1/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders",
+                "1",
+                "items"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4. Gửi quầy/bar",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders/1/send-to-bar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders",
+                "1",
+                "send-to-bar"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "5. Thanh toán",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"method\": \"payos_qr\",\n  \"receivedAmount\": 200000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders/6/payment",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders",
+                "6",
+                "payment"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@cafe.com",
+      "type": "string"
+    },
+    {
+      "key": "adminPassword",
+      "value": "123456",
+      "type": "string"
+    },
+    {
+      "key": "targetUserId",
+      "value": "2",
+      "type": "string"
+    },
+    {
+      "key": "sessionId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "zoneId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "tableId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "inactiveZoneId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "inactiveTableId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "productId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "stockCheckId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "orderId",
+      "value": "1",
+      "type": "string"
+    }
+  ]
+}

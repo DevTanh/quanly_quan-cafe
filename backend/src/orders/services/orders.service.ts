@@ -10,6 +10,7 @@ import { OrdersRepository } from "../repositories/orders.repository"
 import { OrderItemsRepository } from "../repositories/order-items.repository"
 import { PaymentsRepository } from "../repositories/payments.repository"
 import { ProductsRepository } from "../../products/repositories/products.repository"
+import { TablesService } from "../../tables/services/tables.service"
 import { PayosService } from "./payos.service"
 import type { PayOSWebhookPayload } from "./payos.service"
 import { Order, OrderStatus } from "../entities/order.entity"
@@ -32,6 +33,7 @@ export class OrdersService {
     private readonly payosService: PayosService,
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
+    private readonly tablesService: TablesService,
   ) {}
 
   // ─── QUERIES ──────────────────────────────────────────────────────
@@ -54,6 +56,13 @@ export class OrdersService {
   // ─── CREATE ORDER ─────────────────────────────────────────────────
 
   async create(dto: CreateOrderDto, userId: number): Promise<Order> {
+    if (dto.tableId > 0) {
+      const table = await this.tablesService.findActiveTableById(dto.tableId)
+      if (!table) {
+        throw new BadRequestException("Ban khong ton tai hoac da ngung hoat dong")
+      }
+    }
+
     // 1. Kiểm tra bàn đã có order mở chưa
     const existing = await this.ordersRepo.findOpenByTable(dto.tableId)
     if (existing) {

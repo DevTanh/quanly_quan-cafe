@@ -11,11 +11,13 @@ import { PayosService } from "./services/payos.service"
 import { OrdersController } from "./orders.controller"
 import { PaymentsWebhookController } from "./payments-webhook.controller"
 import { ProductsModule } from "../products/products.module"
+import { TablesModule } from "../tables/tables.module"
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Order, OrderItem, Payment]),
     ProductsModule,
+    TablesModule,
   ],
   controllers: [OrdersController, PaymentsWebhookController],
   providers: [

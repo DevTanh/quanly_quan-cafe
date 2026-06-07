@@ -10,6 +10,8 @@ import { PermissionsModule } from "./permissions/permissions.module"
 import { ShiftsModule } from "./shifts/shifts.module"
 import { ProductsModule } from "./products/products.module"
 import { OrdersModule } from "./orders/orders.module"
+import { TablesModule } from "./tables/tables.module"
+import { InventoryModule } from "./inventory/inventory.module"
 import { JwtAuthGuard } from "./auth/guards/jwt-auth.guard"
 import { PermissionsGuard } from "./permissions/guards/permissions.guard"
 
@@ -37,6 +39,8 @@ import { PermissionsGuard } from "./permissions/guards/permissions.guard"
     ShiftsModule,
     ProductsModule,
     OrdersModule,
+    TablesModule,
+    InventoryModule,
   ],
   controllers: [AppController],
   providers: [
