@@ -9,6 +9,7 @@ import { PaymentsRepository } from "./repositories/payments.repository"
 import { OrdersService } from "./services/orders.service"
 import { PayosService } from "./services/payos.service"
 import { OrdersController } from "./orders.controller"
+import { PaymentsController } from "./payments.controller"
 import { PaymentsWebhookController } from "./payments-webhook.controller"
 import { ProductsModule } from "../products/products.module"
 import { TablesModule } from "../tables/tables.module"
@@ -19,7 +20,7 @@ import { TablesModule } from "../tables/tables.module"
     ProductsModule,
     TablesModule,
   ],
-  controllers: [OrdersController, PaymentsWebhookController],
+  controllers: [OrdersController, PaymentsController, PaymentsWebhookController],
   providers: [
     OrdersRepository,
     OrderItemsRepository,

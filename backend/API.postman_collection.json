@@ -2296,6 +2296,87 @@
           "response": []
         },
         {
+          "name": "POST - Thanh toan order (PayOS QR)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json && json.payment && json.payment.orderId) pm.collectionVariables.set(\"orderId\", String(json.payment.orderId));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"method\": \"payos_qr\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders/{{orderId}}/payment",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders",
+                "{{orderId}}",
+                "payment"
+              ]
+            },
+            "description": "Creates a PayOS QR payment. If an existing pending QR has already been paid at PayOS, this endpoint now syncs it and returns the completed payment/order instead of 409."
+          },
+          "response": []
+        },
+        {
+          "name": "GET - Kiem tra trang thai thanh toan QR",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Has payment status\", function () {",
+                  "  pm.expect(json).to.have.property(\"paymentStatus\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders/{{orderId}}/payment-status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders",
+                "{{orderId}}",
+                "payment-status"
+              ]
+            },
+            "description": "Polls local payment status. If local status is pending and PayOS reports PAID, backend syncs payment to paid and order to completed."
+          },
+          "response": []
+        },
+        {
           "name": "PATCH — Hủy order",
           "request": {
             "method": "PATCH",
@@ -3906,6 +3987,270 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Payments (Giao dich)",
+      "item": [
+        {
+          "name": "GET - Danh sach giao dich",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Response is paginated\", function () {",
+                  "  pm.expect(json).to.have.property(\"data\");",
+                  "  pm.expect(json).to.have.property(\"total\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payments?status=paid&from=2026-06-01&to=2026-06-07&page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "paid",
+                  "description": "pending | paid | failed | cancelled"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-06-01",
+                  "description": "Start date"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-06-07",
+                  "description": "End date"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Requires permission: payment:view_all. Returns invoiceCode, payment fields and order summary."
+          },
+          "response": []
+        },
+        {
+          "name": "GET - Loc theo phuong thuc thanh toan",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payments?method=cash&status=paid&page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments"
+              ],
+              "query": [
+                {
+                  "key": "method",
+                  "value": "cash",
+                  "description": "cash | bank_transfer | payos_qr"
+                },
+                {
+                  "key": "status",
+                  "value": "paid"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Requires permission: payment:view_all."
+          },
+          "response": []
+        },
+        {
+          "name": "GET - Tim theo ma hoa don",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payments?search=HD000001&page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "HD000001",
+                  "description": "Invoice code format generated from orderId"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Requires permission: payment:view_all."
+          },
+          "response": []
+        },
+        {
+          "name": "GET - Export payments Excel",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "pm.test(\"Content-Type is Excel\", function () {",
+                  "  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"spreadsheetml.sheet\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payments/export/excel?status=paid&from=2026-06-01&to=2026-06-07",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "export",
+                "excel"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "paid"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-06-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-06-07"
+                }
+              ]
+            },
+            "description": "Requires permission: report:export. Uses same filters as GET /payments and exports up to 10000 rows."
+          },
+          "response": []
+        }
+      ],
+      "description": "Plan 04 APIs: payment transaction listing, filtering, invoice search and Excel export."
+    },
+    {
+      "name": "Reports (Bao cao)",
+      "item": [
+        {
+          "name": "GET - Dashboard report hom nay",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 2xx\", function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Dashboard shape\", function () {",
+                  "  pm.expect(json).to.have.property(\"revenue\");",
+                  "  pm.expect(json).to.have.property(\"paidOrders\");",
+                  "  pm.expect(json).to.have.property(\"paymentMethods\");",
+                  "  pm.expect(json).to.have.property(\"topProducts\");",
+                  "  pm.expect(json).to.have.property(\"lowStockCount\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "dashboard"
+              ]
+            },
+            "description": "Requires permission: report:view_daily. Defaults from start of current day to end of current day."
+          },
+          "response": []
+        },
+        {
+          "name": "GET - Dashboard report theo khoang ngay",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/dashboard?from=2026-06-01&to=2026-06-07",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "dashboard"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-06-01",
+                  "description": "Start date"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-06-07",
+                  "description": "End date"
+                }
+              ]
+            },
+            "description": "Requires permission: report:view_daily. Revenue is calculated from paid payments only."
+          },
+          "response": []
+        }
+      ],
+      "description": "Plan 04 APIs: dashboard summary report from paid payments and order items."
     }
   ],
   "variable": [

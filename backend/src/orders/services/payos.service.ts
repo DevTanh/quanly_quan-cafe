@@ -25,6 +25,12 @@ export interface PayOSWebhookPayload {
   signature: string
 }
 
+export interface PayOSPaymentLinkInfo {
+  code: string
+  desc?: string
+  data?: Record<string, unknown>
+}
+
 @Injectable()
 export class PayosService {
   private readonly clientId: string
@@ -125,7 +131,7 @@ export class PayosService {
   /**
    * Lấy thông tin payment link (dùng để kiểm tra thủ công).
    */
-  async getPaymentLink(paymentLinkId: string): Promise<Record<string, unknown>> {
+  async getPaymentLink(paymentLinkId: string): Promise<PayOSPaymentLinkInfo> {
     const response = await fetch(
       `${this.baseUrl}/v2/payment-requests/${paymentLinkId}`,
       {

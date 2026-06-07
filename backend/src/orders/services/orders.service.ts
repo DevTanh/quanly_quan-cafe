@@ -205,6 +205,10 @@ export class OrdersService {
     if (existingPayment) {
       // Nếu đã có payment pending (QR), không cho tạo thêm
       if (existingPayment.paymentStatus === PaymentStatus.PENDING) {
+        const synced = await this.syncPendingPayosPayment(existingPayment)
+        if (synced?.payment?.paymentStatus === PaymentStatus.PAID) {
+          return synced
+        }
         throw new ConflictException(
           "Order đang có giao dịch QR chờ thanh toán. Hủy QR trước khi tạo mới.",
         )
@@ -366,19 +370,13 @@ export class OrdersService {
       await runner.startTransaction()
       try {
         // Cập nhật payment
-        await runner.manager.update(Payment, payment.id, {
-          paymentStatus: PaymentStatus.PAID,
-          receivedAmount: webhookPayload.data.amount,
-          transactionRef: webhookPayload.data.reference,
-        })
-
-        // Trừ kho
-        await this.deductStock(runner, order)
-
-        // Chuyển order sang completed
-        await runner.manager.update(Order, orderId, {
-          status: OrderStatus.COMPLETED,
-        })
+        await this.completePayosPayment(
+          runner,
+          order,
+          payment,
+          webhookPayload.data.amount,
+          webhookPayload.data.reference,
+        )
 
         await runner.commitTransaction()
         return { success: true, message: "Payment confirmed" }
@@ -403,6 +401,19 @@ export class OrdersService {
     const payment = await this.paymentsRepo.findByOrderId(orderId)
     if (!payment) {
       return { orderId, paymentStatus: null, method: null }
+    }
+    if (
+      payment.method === PaymentMethod.PAYOS_QR &&
+      payment.paymentStatus === PaymentStatus.PENDING
+    ) {
+      const synced = await this.syncPendingPayosPayment(payment)
+      if (synced?.payment) {
+        return {
+          orderId,
+          paymentStatus: synced.payment.paymentStatus,
+          method: synced.payment.method,
+        }
+      }
     }
     return {
       orderId,
@@ -487,6 +498,68 @@ export class OrdersService {
         .where("id = :id", { id: item.productId })
         .execute()
     }
+  }
+
+  private async syncPendingPayosPayment(payment: Payment) {
+    if (
+      payment.method !== PaymentMethod.PAYOS_QR ||
+      payment.paymentStatus !== PaymentStatus.PENDING ||
+      !payment.paymentLinkId
+    ) {
+      return null
+    }
+
+    const linkInfo = await this.payosService.getPaymentLink(payment.paymentLinkId)
+    const data = linkInfo.data
+    if (!data || typeof data !== "object") return null
+
+    const status = String(data["status"] ?? "").toUpperCase()
+    if (status !== "PAID") return null
+
+    const paidAmount = Number(data["amountPaid"] ?? data["amount"] ?? payment.amount)
+    const receivedAmount = Number.isFinite(paidAmount) ? paidAmount : Number(payment.amount)
+    const order = await this.ordersRepo.findById(payment.orderId)
+    if (!order) return null
+
+    const runner = this.dataSource.createQueryRunner()
+    await runner.connect()
+    await runner.startTransaction()
+    try {
+      await this.completePayosPayment(runner, order, payment, receivedAmount)
+      await runner.commitTransaction()
+    } catch (err) {
+      await runner.rollbackTransaction()
+      throw err
+    } finally {
+      await runner.release()
+    }
+
+    return {
+      payment: await this.paymentsRepo.findByOrderId(payment.orderId),
+      order: await this.ordersRepo.findById(payment.orderId),
+    }
+  }
+
+  private async completePayosPayment(
+    runner: import("typeorm").QueryRunner,
+    order: Order,
+    payment: Payment,
+    receivedAmount: number,
+    transactionRef?: string,
+  ): Promise<void> {
+    const paymentUpdate: Partial<Payment> = {
+      paymentStatus: PaymentStatus.PAID,
+      receivedAmount,
+    }
+    if (transactionRef) {
+      paymentUpdate.transactionRef = transactionRef
+    }
+
+    await runner.manager.update(Payment, payment.id, paymentUpdate)
+    await this.deductStock(runner, order)
+    await runner.manager.update(Order, order.id, {
+      status: OrderStatus.COMPLETED,
+    })
   }
 
   /**
