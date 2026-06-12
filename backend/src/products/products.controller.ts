@@ -188,6 +188,7 @@ export class ProductsController {
           sellingPrice: row.sellingPrice,
           stock: row.stock,
           status: row.status,
+          imageUrl: row.imageUrl,
         })
         imported.push({ id: product.id, code: product.code, name: product.name })
       } catch (err: unknown) {

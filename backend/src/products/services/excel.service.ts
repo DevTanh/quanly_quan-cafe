@@ -27,6 +27,7 @@ export interface ExcelImportRow {
   sellingPrice: number
   stock: number
   status: ProductStatus
+  imageUrl?: string
 }
 
 export interface ImportResult {
@@ -53,6 +54,7 @@ export class ExcelService {
       { header: "Giá bán", key: "sellingPrice", width: 15 },
       { header: "Tồn kho", key: "stock", width: 12 },
       { header: "Trạng thái", key: "status", width: 18 },
+      { header: "Hình ảnh", key: "imageUrl", width: 45 },
     ]
 
     // Style header
@@ -74,6 +76,7 @@ export class ExcelService {
       sellingPrice: 25000,
       stock: 100,
       status: "Đang kinh doanh",
+      imageUrl: "",
     })
 
     // Thêm sheet hướng dẫn
@@ -87,6 +90,7 @@ export class ExcelService {
       ["Loại thực đơn", Object.values(MENU_TYPE_LABELS).join(", ")],
       ["Danh mục", "(Tên danh mục đã có trong hệ thống)"],
       ["Trạng thái", Object.values(PRODUCT_STATUS_LABELS).join(", ")],
+      ["Hình ảnh", "Link ảnh public http/https; để trống nếu không có"],
       ["(*)", "Trường bắt buộc"],
     ]
     guideRows.forEach((row) => guideSheet.addRow(row))
@@ -110,6 +114,7 @@ export class ExcelService {
       { header: "Giá bán", key: "sellingPrice", width: 15 },
       { header: "Tồn kho", key: "stock", width: 12 },
       { header: "Trạng thái", key: "status", width: 18 },
+      { header: "Hình ảnh", key: "imageUrl", width: 45 },
     ]
 
     // Style header
@@ -131,6 +136,7 @@ export class ExcelService {
         sellingPrice: Number(p.sellingPrice),
         stock: p.stock,
         status: PRODUCT_STATUS_LABELS[p.status] ?? p.status,
+        imageUrl: p.imageUrl ?? "",
       })
     }
 
@@ -164,6 +170,7 @@ export class ExcelService {
       const sellingPrice = this.cellToNumber(row.getCell(6))
       const stock = this.cellToNumber(row.getCell(7))
       const statusLabel = this.cellToString(row.getCell(8))
+      const rawImageUrl = this.cellToString(row.getCell(9))
 
       const rowErrors: string[] = []
 
@@ -202,6 +209,11 @@ export class ExcelService {
       if (costPrice < 0) rowErrors.push("Giá vốn không được âm")
       if (stock < 0) rowErrors.push("Tồn kho không được âm")
 
+      const imageUrl = this.parseImageUrl(rawImageUrl)
+      if (rawImageUrl && !imageUrl) {
+        errors.push({ row: rowNumber, message: `Link hình ảnh "${rawImageUrl}" không hợp lệ` })
+      }
+
       if (rowErrors.length > 0) {
         errors.push({ row: rowNumber, message: rowErrors.join("; ") })
       } else {
@@ -214,6 +226,7 @@ export class ExcelService {
           sellingPrice,
           stock,
           status,
+          imageUrl,
         })
       }
     })
@@ -239,5 +252,18 @@ export class ExcelService {
     if (val == null) return 0
     const num = Number(val)
     return isNaN(num) ? 0 : num
+  }
+
+  private parseImageUrl(value: string): string | undefined {
+    if (!value) return undefined
+    if (value.length > 500) return undefined
+
+    try {
+      const url = new URL(value)
+      if (url.username || url.password) return undefined
+      return ["http:", "https:"].includes(url.protocol) ? value : undefined
+    } catch {
+      return undefined
+    }
   }
 }
