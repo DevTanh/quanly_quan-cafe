@@ -13,6 +13,7 @@ import { OrdersService } from "./services/orders.service"
 import { CreateOrderDto } from "./dto/create-order.dto"
 import { UpdateOrderItemsDto } from "./dto/update-order-items.dto"
 import { CreatePaymentDto } from "./dto/create-payment.dto"
+import { UpdateOrderItemStatusDto } from "./dto/update-order-item-status.dto"
 import { QueryOrderDto } from "./dto/query-order.dto"
 import { RequirePermissions } from "../permissions/decorators/permissions.decorator"
 import { CurrentUser } from "../auth/decorators/current-user.decorator"
@@ -68,6 +69,18 @@ export class OrdersController {
     @Body() dto: UpdateOrderItemsDto,
   ) {
     return this.ordersService.updateItems(id, dto)
+  }
+
+  // ─── PATCH /orders/:orderId/items/:itemId/status ─────────────
+  @Patch(":orderId/items/:itemId/status")
+  @RequirePermissions("order:update_item_status")
+  @ApiOperation({ summary: "Cập nhật trạng thái từng món — Barista/Staff" })
+  updateItemStatus(
+    @Param("orderId", ParseIntPipe) orderId: number,
+    @Param("itemId", ParseIntPipe) itemId: number,
+    @Body() dto: UpdateOrderItemStatusDto,
+  ) {
+    return this.ordersService.updateItemStatus(orderId, itemId, dto.status)
   }
 
   // ─── POST /orders/:id/send-to-bar ───────────────────────────

@@ -1,19 +1,26 @@
+// src/components/tables/components/TableCard.tsx
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPen, faTrash, faChair } from '@fortawesome/free-solid-svg-icons';
+import { faPen, faTrash, faChair, faQrcode } from '@fortawesome/free-solid-svg-icons';
 
 interface TableItem {
-  id: string; name: string; seats: number; note: string; status: 'active' | 'inactive';
+  id: string;
+  name: string;
+  seats: number;
+  note: string;
+  status: 'active' | 'inactive';
 }
 
 interface Props {
   table: TableItem;
+  zoneName?: string;
   onEdit: () => void;
   onToggle: () => void;
   onDelete: () => void;
+  onShowQr: () => void;   // mới
 }
 
-const TableCard: React.FC<Props> = ({ table: t, onEdit, onToggle, onDelete }) => (
+const TableCard: React.FC<Props> = ({ table: t, zoneName, onEdit, onToggle, onDelete, onShowQr }) => (
   <div className={[
     'bg-white rounded-2xl px-4 pt-[18px] pb-3.5 border flex flex-col gap-2.5 transition-all relative cursor-default',
     t.status === 'inactive'
@@ -22,11 +29,23 @@ const TableCard: React.FC<Props> = ({ table: t, onEdit, onToggle, onDelete }) =>
   ].join(' ')}>
     <div className="flex items-start justify-between gap-1.5">
       <span className="text-[15px] font-bold text-gray-900 leading-snug">{t.name}</span>
-      <div
-        title={t.status === 'active' ? 'Hoạt động' : 'Ngừng HĐ'}
-        className="w-[9px] h-[9px] rounded-full shrink-0 mt-1 shadow-[0_0_0_2px_rgba(255,255,255,0.8)]"
-        style={{ background: t.status === 'active' ? '#3dba74' : '#d1d5db' }}
-      />
+      <div className="flex items-center gap-1.5">
+        {/* QR shortcut badge */}
+        {t.status === 'active' && (
+          <button
+            onClick={e => { e.stopPropagation(); onShowQr(); }}
+            title="Xem mã QR gọi món"
+            className="w-[22px] h-[22px] rounded-md bg-[#f0fdf4] border border-[#bbf7d0] flex items-center justify-center text-[#16a34a] hover:bg-[#dcfce7] transition-colors"
+          >
+            <FontAwesomeIcon icon={faQrcode} className="text-[10px]" />
+          </button>
+        )}
+        <div
+          title={t.status === 'active' ? 'Hoạt động' : 'Ngừng HĐ'}
+          className="w-[9px] h-[9px] rounded-full shrink-0 mt-1 shadow-[0_0_0_2px_rgba(255,255,255,0.8)]"
+          style={{ background: t.status === 'active' ? '#3dba74' : '#d1d5db' }}
+        />
+      </div>
     </div>
 
     <div className="flex items-center gap-1.5 text-[12.5px] text-gray-500 font-medium">
@@ -38,6 +57,7 @@ const TableCard: React.FC<Props> = ({ table: t, onEdit, onToggle, onDelete }) =>
 
     <div className="h-px bg-[#f5f5f5] -mx-1" />
 
+    {/* Action row */}
     <div className="flex gap-1.5 pt-0.5">
       <button
         onClick={onEdit}
@@ -45,6 +65,18 @@ const TableCard: React.FC<Props> = ({ table: t, onEdit, onToggle, onDelete }) =>
       >
         <FontAwesomeIcon icon={faPen} /> Sửa
       </button>
+
+      {/* QR button — visible on active tables */}
+      {t.status === 'active' && (
+        <button
+          onClick={onShowQr}
+          title="Mã QR gọi món"
+          className="flex-[0.9] h-7 border-none rounded-[7px] text-[11.5px] font-semibold cursor-pointer flex items-center justify-center gap-1 transition-all bg-[#f0fdf4] text-[#16a34a] hover:bg-[#dcfce7]"
+        >
+          <FontAwesomeIcon icon={faQrcode} className="text-[10px]" /> QR
+        </button>
+      )}
+
       <button
         onClick={onToggle}
         className={[
@@ -56,6 +88,7 @@ const TableCard: React.FC<Props> = ({ table: t, onEdit, onToggle, onDelete }) =>
       >
         {t.status === 'active' ? 'Ngừng HĐ' : 'Hoạt động'}
       </button>
+
       <button
         onClick={onDelete}
         className="flex-[0.7] h-7 border-none rounded-[7px] text-[11.5px] cursor-pointer flex items-center justify-center transition-all bg-[#fff1f2] text-[#e11d48] hover:bg-[#fecdd3]"

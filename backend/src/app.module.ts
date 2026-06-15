@@ -1,3 +1,5 @@
+// Đặt tại: src/app.module.ts
+
 import { Module } from "@nestjs/common"
 import { APP_GUARD } from "@nestjs/core"
 import { AppController } from "./app.controller"
@@ -13,6 +15,8 @@ import { OrdersModule } from "./orders/orders.module"
 import { TablesModule } from "./tables/tables.module"
 import { InventoryModule } from "./inventory/inventory.module"
 import { ReportsModule } from "./reports/reports.module"
+import { CustomersModule } from "./customers/customers.module"
+import { QrOrderModule } from "./qr-order/qr-order.module"
 import { JwtAuthGuard } from "./auth/guards/jwt-auth.guard"
 import { PermissionsGuard } from "./permissions/guards/permissions.guard"
 
@@ -43,20 +47,16 @@ import { PermissionsGuard } from "./permissions/guards/permissions.guard"
     TablesModule,
     InventoryModule,
     ReportsModule,
+    CustomersModule,
+    QrOrderModule,    // ← Module QR Gọi món — public endpoints, không cần auth
   ],
   controllers: [AppController],
   providers: [
     AppService,
     // Guard 1: Xác thực JWT (chạy trước)
-    {
-      provide: APP_GUARD,
-      useClass: JwtAuthGuard,
-    },
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
     // Guard 2: Kiểm tra permission (chạy sau khi đã xác thực)
-    {
-      provide: APP_GUARD,
-      useClass: PermissionsGuard,
-    },
+    { provide: APP_GUARD, useClass: PermissionsGuard },
   ],
 })
-export class AppModule {}
+export class AppModule { }

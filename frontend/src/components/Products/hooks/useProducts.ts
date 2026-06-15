@@ -20,10 +20,9 @@ const makeFormData = (form: ProductForm): FormData => {
   fd.append('costPrice', String(parseNum(form.cost)));
   if (form.stock) fd.append('stock', form.stock);
   fd.append('status', form.status ? 'active' : 'inactive');
+
   if (form.imageFile) {
     fd.append('image', form.imageFile);
-  } else if (form.image && !form.image.startsWith('data:')) {
-    fd.append('imageUrl', form.image);
   }
   return fd;
 };
@@ -68,6 +67,11 @@ export function useProducts() {
     setProducts(prev => prev.filter(p => p.id !== id));
   };
 
+  const bulkDeleteProducts = async (ids: number[]) => {
+    await productsApi.bulkDelete(ids);
+    setProducts(prev => prev.filter(p => !ids.includes(p.id)));
+  };
+
   const toggleStatus = async (product: ProductAPI) => {
     const newStatus = product.status === 'active' ? 'inactive' : 'active';
     setProducts(prev => prev.map(p => p.id === product.id ? { ...p, status: newStatus } : p));
@@ -102,6 +106,7 @@ export function useProducts() {
     addProduct,
     updateProduct,
     deleteProduct,
+    bulkDeleteProducts,
     toggleStatus,
     exportExcel,
     importExcel,

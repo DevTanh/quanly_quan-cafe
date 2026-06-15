@@ -8,15 +8,11 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger"
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
 
-  // Lấy ConfigService để truy cập biến môi trường
   const configService = app.get(ConfigService)
-
   const port = configService.get<number>("PORT") || 3000
 
-  // Sử dụng cookie-parser để xử lý cookie
   app.use(cookieParser())
 
-  // Cấu hình CORS để cho phép frontend truy cập
   app.enableCors({
     origin: configService.get("CLIENT_DOMAIN_DEV"),
     credentials: true,
@@ -26,27 +22,30 @@ async function bootstrap() {
     allowedHeaders: "Content-Type, Authorization",
   })
 
+  // P2: whitelist + forbidNonWhitelisted để chặn các field không khai báo trong DTO
   app.useGlobalPipes(
     new ValidationPipe({
-      transform: true, // Tự động chuyển đổi payload thành các DTO đã định nghĩa
-    })
-  ) // Sử dụng ValidationPipe để tự động validate dữ liệu đầu vào
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    }),
+  )
 
-  // Kích hoạt ClassSerializerInterceptor để tự động loại bỏ các field @Exclude()
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)))
-  
-  // Cấu hình Swagger để tạo tài liệu API
-  const config = new DocumentBuilder()
-    .setTitle("NestJS API")
-    .setDescription("The API description")
-    .setVersion("1.0")
-    .addBearerAuth()
-    .build()
-  const documentFactory = () => SwaggerModule.createDocument(app, config) // Tạo tài liệu API từ cấu hình
-  SwaggerModule.setup("api", app, documentFactory) // Thiết lập đường dẫn để truy cập tài liệu API
 
-  app.setGlobalPrefix("api/v1") // Thiết lập prefix cho tất cả các route
+  const config = new DocumentBuilder()
+    .setTitle("Cafe Management API")
+    .setDescription("API cho hệ thống quản lý quán cà phê / nhà hàng")
+    .setVersion("1.0")
+    .addCookieAuth("access_token")
+    .build()
+  const documentFactory = () => SwaggerModule.createDocument(app, config)
+  SwaggerModule.setup("api", app, documentFactory)
+
+  app.setGlobalPrefix("api/v1")
 
   await app.listen(port)
+  console.log(`🚀 Server running on http://localhost:${port}/api/v1`)
+  console.log(`📖 Swagger docs at http://localhost:${port}/api`)
 }
 bootstrap()

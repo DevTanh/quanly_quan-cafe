@@ -19,7 +19,7 @@ export class ProductsService {
     private readonly productsRepo: ProductsRepository,
     private readonly categoriesRepo: CategoriesRepository,
     private readonly cloudinaryService: CloudinaryService,
-  ) {}
+  ) { }
 
   // ─── QUERIES ──────────────────────────────────────────────────────
 
@@ -33,6 +33,29 @@ export class ProductsService {
     return product
   }
 
+  async bulkDelete(ids: number[]): Promise<{ deleted: number; failed: number[] }> {
+    const failed: number[] = [];
+    let deleted = 0;
+
+    for (const id of ids) {
+      try {
+        const product = await this.productsRepo.findById(id);
+        if (!product) {
+          failed.push(id);
+          continue;
+        }
+        if (product.imagePublicId) {
+          await this.cloudinaryService.delete(product.imagePublicId);
+        }
+        await this.productsRepo.delete(id);
+        deleted++;
+      } catch {
+        failed.push(id);
+      }
+    }
+
+    return { deleted, failed };
+  }
   // ─── CREATE ───────────────────────────────────────────────────────
 
   async create(

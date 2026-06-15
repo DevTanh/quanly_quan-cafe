@@ -52,4 +52,8 @@ export class TablesRepository {
     await this.repo.update(id, data)
     return await this.findById(id)
   }
+  async delete(id: number): Promise<void> {
+    await this.repo.delete(id)
+  }
+
 }

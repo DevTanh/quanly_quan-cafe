@@ -1,16 +1,13 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { inventoryApi } from '../../../api/inventory.api';
 import type { ProductAPI } from '../../../api/products.api';
+import type { StockCheckRecord } from '../../../api/inventory.api';
 
 /* ── Types ── */
 export interface StockCheckRow { product: ProductAPI; actualStock: string; note: string }
 export interface ReviewItem {
   productId: number; productCode: string; productName: string; category: string;
   systemStock: number; actualStock: number; diff: number; note: string;
-}
-export interface HistoryRecord {
-  id: string; date: string; checker: string;
-  totalItems: number; totalDiff: number; items: ReviewItem[];
 }
 export type Step = 'input' | 'review' | 'done';
 
@@ -38,8 +35,13 @@ export function useStockCheck() {
   const [checkerErr, setCheckerErr] = useState(false);
   const [rows, setRows] = useState<StockCheckRow[]>([]);
   const [reviewItems, setReviewItems] = useState<ReviewItem[]>([]);
-  const [history, setHistory] = useState<HistoryRecord[]>([]);
   const [tab, setTab] = useState<'check' | 'history'>('check');
+
+  // Lịch sử kiểm kho từ BE
+  const [history, setHistory] = useState<StockCheckRecord[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyTotal, setHistoryTotal] = useState(0);
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -47,11 +49,37 @@ export function useStockCheck() {
       const data = await inventoryApi.getProducts();
       setProducts(data);
       setCategories(['Tất cả', ...Array.from(new Set<string>(data.map(p => p.category.name)))]);
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
+    } catch (err) {
+      console.error('fetchProducts error:', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { fetchProducts(); }, [fetchProducts]);
+  const fetchHistory = useCallback(async (page = 1) => {
+    try {
+      setHistoryLoading(true);
+      const result = await inventoryApi.getStockChecks({ page, limit: 20 });
+      setHistory(result.data);
+      setHistoryTotal(result.total);
+      setHistoryPage(page);
+    } catch (err) {
+      console.error('fetchHistory error:', err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  // Tải lịch sử khi chuyển sang tab history
+  useEffect(() => {
+    if (tab === 'history') {
+      fetchHistory(1);
+    }
+  }, [tab, fetchHistory]);
 
   const filteredProducts = useMemo(() =>
     products.filter(p => {
@@ -147,30 +175,44 @@ export function useStockCheck() {
     setStep('review');
   };
 
+  /**
+   * handleApprove: Gọi POST /inventory/stock-checks một lần duy nhất.
+   * BE sẽ:
+   * 1. Tạo phiếu kiểm kho với đầy đủ chứng từ
+   * 2. Cập nhật tồn kho từng sản phẩm theo actualStock (không phải delta)
+   */
   const handleApprove = async () => {
     try {
       setSubmitting(true);
-      await Promise.all(reviewItems.map(item => inventoryApi.updateStock(item.productId, item.actualStock)));
-      const record: HistoryRecord = {
-        id: `KC${Date.now()}`, date: fmtDate(new Date()), checker: checker.trim(),
-        totalItems: reviewItems.length,
-        totalDiff: reviewItems.reduce((s, i) => s + Math.abs(i.diff), 0),
-        items: reviewItems,
-      };
-      setHistory(prev => [record, ...prev]);
-      setRows([]); setChecker(''); setReviewItems([]); setStep('done');
+      await inventoryApi.createStockCheck({
+        checkerName: checker.trim(),
+        items: reviewItems.map(item => ({
+          productId: item.productId,
+          actualStock: item.actualStock,
+          note: item.note || undefined,
+        })),
+      });
+      setRows([]);
+      setChecker('');
+      setReviewItems([]);
+      setStep('done');
       await fetchProducts();
       setTimeout(() => setStep('input'), 3500);
-    } catch (err) {
-      console.error(err);
-      alert('Có lỗi xảy ra. Vui lòng thử lại.');
+    } catch (err: any) {
+      console.error('handleApprove error:', err);
+      const msg = err?.response?.data?.message ?? 'Có lỗi xảy ra. Vui lòng thử lại.';
+      alert(msg);
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleReset = () => {
-    setRows([]); setSearch(''); setFilterCat('Tất cả'); setChecker(''); setCheckerErr(false);
+    setRows([]);
+    setSearch('');
+    setFilterCat('Tất cả');
+    setChecker('');
+    setCheckerErr(false);
   };
 
   return {
@@ -178,13 +220,14 @@ export function useStockCheck() {
     step, setStep, mode, setMode,
     search, setSearch, filterCat, setFilterCat,
     checker, setChecker, checkerErr, setCheckerErr,
-    rows, activeRows, reviewItems, history,
+    rows, activeRows, reviewItems,
+    history, historyLoading, historyPage, historyTotal,
     tab, setTab,
     filteredProducts, finiteProducts,
     isInRows, getRow, getDiff,
     toggleSelect, setActual, setNote,
     stats, reviewStats,
     handleGoReview, handleApprove, handleReset,
-    fetchProducts,
+    fetchProducts, fetchHistory,
   };
 }

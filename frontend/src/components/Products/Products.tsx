@@ -14,7 +14,10 @@ type ModalState =
   | { open: true; mode: 'add' }
   | { open: true; mode: 'edit'; product: ProductAPI };
 
-type DeleteState = { open: false } | { open: true; product: ProductAPI };
+type DeleteState =
+  | { open: false }
+  | { open: true; mode: 'single'; product: ProductAPI }
+  | { open: true; mode: 'bulk'; ids: number[] };
 
 const toForm = (p: ProductAPI): ProductForm => ({
   name: p.name,
@@ -30,8 +33,8 @@ const toForm = (p: ProductAPI): ProductForm => ({
 
 const Products: React.FC = () => {
   const { products, categories, loading, error, retry,
-    addProduct, updateProduct, deleteProduct, toggleStatus,
-    exportExcel, importExcel } = useProducts();
+    addProduct, updateProduct, deleteProduct, bulkDeleteProducts,
+    toggleStatus, exportExcel, importExcel } = useProducts();
 
   const {
     filters, setSearch, toggleFilter, clearFilters, clearAll,
@@ -64,9 +67,21 @@ const Products: React.FC = () => {
 
   const handleDelete = async () => {
     if (!deleteState.open) return;
-    await deleteProduct(deleteState.product.id);
-    setSelectedIds(prev => prev.filter(id => id !== deleteState.product.id));
+
+    if (deleteState.mode === 'single') {
+      await deleteProduct(deleteState.product.id);
+      setSelectedIds(prev => prev.filter(id => id !== deleteState.product.id));
+    } else {
+      await bulkDeleteProducts(deleteState.ids);
+      setSelectedIds([]);
+    }
+
     setDeleteState({ open: false });
+  };
+
+  const handleBulkDelete = () => {
+    if (!selectedIds.length) return;
+    setDeleteState({ open: true, mode: 'bulk', ids: selectedIds });
   };
 
   const toggleSelect = (id: number) =>
@@ -74,6 +89,12 @@ const Products: React.FC = () => {
 
   const toggleSelectAll = () =>
     setSelectedIds(filtered.every(p => selectedIds.includes(p.id)) ? [] : filtered.map(p => p.id));
+
+  const deleteLabel = deleteState.open
+    ? deleteState.mode === 'bulk'
+      ? `${deleteState.ids.length} sản phẩm đã chọn`
+      : deleteState.product.name
+    : '';
 
   return (
     <PageLayout
@@ -100,6 +121,7 @@ const Products: React.FC = () => {
         onAdd={() => { setModalError(null); setModal({ open: true, mode: 'add' }); }}
         onImport={async e => { const f = e.target.files?.[0]; if (f) await importExcel(f); e.target.value = ''; }}
         onExport={exportExcel}
+        onBulkDelete={handleBulkDelete}
       />
 
       <ProductTable
@@ -109,7 +131,7 @@ const Products: React.FC = () => {
         onToggleSelectAll={toggleSelectAll}
         onToggleStatus={(p, e) => { e.stopPropagation(); toggleStatus(p); }}
         onEdit={p => { setModalError(null); setModal({ open: true, mode: 'edit', product: p }); }}
-        onDelete={p => setDeleteState({ open: true, product: p })}
+        onDelete={p => setDeleteState({ open: true, mode: 'single', product: p })}
         hasFilters={activeFilterCount > 0 || !!filters.search}
         onClearFilters={clearAll}
       />
@@ -134,7 +156,7 @@ const Products: React.FC = () => {
 
       {deleteState.open && (
         <DeleteConfirmModal
-          productName={deleteState.product.name}
+          productName={deleteLabel}
           onCancel={() => setDeleteState({ open: false })}
           onConfirm={handleDelete}
         />

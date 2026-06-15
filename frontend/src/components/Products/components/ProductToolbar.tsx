@@ -1,6 +1,6 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faFileImport, faFileExport } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faFileImport, faFileExport, faTrash } from '@fortawesome/free-solid-svg-icons';
 
 interface ProductToolbarProps {
   totalCount: number;
@@ -9,11 +9,12 @@ interface ProductToolbarProps {
   onAdd: () => void;
   onImport: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onExport: () => void;
+  onBulkDelete?: () => void;
 }
 
 const ProductToolbar: React.FC<ProductToolbarProps> = ({
   totalCount, filteredCount, selectedCount,
-  onAdd, onImport, onExport,
+  onAdd, onImport, onExport, onBulkDelete,
 }) => (
   <div className="flex items-center justify-between flex-wrap gap-2">
     <span className="text-[13px] text-gray-500">
@@ -25,6 +26,16 @@ const ProductToolbar: React.FC<ProductToolbarProps> = ({
     </span>
 
     <div className="flex items-center gap-2 flex-wrap">
+      {selectedCount > 0 && (
+        <button
+          className="inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-md text-[13.5px] font-medium cursor-pointer border-none bg-red-500 text-white hover:bg-red-600 active:scale-95 transition-all font-[inherit]"
+          onClick={onBulkDelete}
+        >
+          <FontAwesomeIcon icon={faTrash} />
+          <span>Xóa {selectedCount} sản phẩm</span>
+        </button>
+      )}
+
       <button
         className="inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-md text-[13.5px] font-medium cursor-pointer border-none bg-green-600 text-white hover:bg-green-700 transition-colors font-[inherit]"
         onClick={onAdd}

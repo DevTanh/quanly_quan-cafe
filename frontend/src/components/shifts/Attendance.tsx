@@ -2,7 +2,7 @@ import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faClipboardCheck, faUser, faChevronDown, faChevronLeft, faChevronRight,
-  faCheckCircle, faMoneyBill,
+  faCheckCircle, faMoneyBill, faSpinner,
 } from '@fortawesome/free-solid-svg-icons';
 import { useAttendance, STATUS_CONFIG, fmt } from './hooks/useAttendance';
 import AttendanceTable from './components/AttendanceTable';
@@ -20,6 +20,9 @@ const Attendance: React.FC = () => {
         <h1 className="text-[19px] font-black text-slate-900 m-0 flex items-center gap-2.5 tracking-tight">
           <FontAwesomeIcon icon={faClipboardCheck} className="text-green-600" />
           Bảng chấm công
+          {a.loadingData && (
+            <FontAwesomeIcon icon={faSpinner} spin className="text-[15px] text-green-400 ml-1" />
+          )}
         </h1>
         <div className="flex items-center gap-2">
           <button
@@ -37,6 +40,7 @@ const Attendance: React.FC = () => {
       {/* ── Toolbar ── */}
       <div className="flex items-center justify-between px-6 py-2.5 bg-white border-b border-gray-200 shrink-0 gap-2 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap">
+
           {/* Search */}
           <div className="flex items-center h-9 border border-gray-200 rounded-lg bg-slate-50 overflow-hidden transition-all focus-within:border-green-500 focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(22,163,74,0.1)]">
             <FontAwesomeIcon icon={faUser} className="px-2.5 text-gray-400 text-xs shrink-0" />
@@ -49,11 +53,14 @@ const Attendance: React.FC = () => {
             <FontAwesomeIcon icon={faChevronDown} className="px-2.5 text-gray-400 text-[9px] shrink-0 cursor-pointer" />
           </div>
 
-          {/* Employee select */}
+          {/* Employee dropdown */}
           <div className="relative">
             <select className="h-9 pl-3 pr-8 border border-gray-200 rounded-lg text-[13px] bg-slate-50 text-slate-900 appearance-none outline-none cursor-pointer font-[inherit] focus:border-green-500">
-              <option value="all">Theo tất cả</option>
-              {a.employees.map((e: any) => <option key={e.id} value={e.id}>{e.name}</option>)}
+              <option value="all">Tất cả nhân viên</option>
+              {/* fullName thay vì name */}
+              {a.employees.map(e => (
+                <option key={e.id} value={e.id}>{e.fullName}</option>
+              ))}
             </select>
             <FontAwesomeIcon icon={faChevronDown} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] text-gray-400 pointer-events-none" />
           </div>
@@ -97,17 +104,18 @@ const Attendance: React.FC = () => {
             ))}
           </div>
         </div>
-
-        <button className="w-9 h-9 border border-gray-200 bg-white rounded-lg text-[14px] font-black text-slate-600 cursor-pointer hover:bg-slate-50 transition-all flex items-center justify-center tracking-widest">···</button>
       </div>
 
       {/* ── Wage bar ── */}
       <div className="flex items-center gap-3 px-6 py-2 bg-amber-50 border-b border-amber-200 shrink-0 flex-wrap">
-        <span className="text-xs font-bold text-amber-800 whitespace-nowrap shrink-0">Lương dự kiến tuần này</span>
+        <span className="text-xs font-bold text-amber-800 whitespace-nowrap shrink-0">
+          Lương dự kiến tuần này
+        </span>
         <div className="flex gap-1.5 flex-wrap flex-1">
-          {a.employees.slice(0, 5).map((e: any) => (
+          {a.employees.slice(0, 5).map(e => (
             <span key={e.id} className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-xl bg-white border border-amber-200 text-xs">
-              <span className="font-semibold text-slate-600">{e.name.split(' ').pop()}</span>
+              {/* Lấy họ cuối từ fullName */}
+              <span className="font-semibold text-slate-600">{e.fullName.split(' ').pop()}</span>
               <span className="text-amber-600 font-bold">{fmt(a.weeklyWage(e.id))}</span>
             </span>
           ))}
@@ -123,16 +131,23 @@ const Attendance: React.FC = () => {
       </div>
 
       {/* ── Calendar table ── */}
-      <AttendanceTable
-        shifts={a.shifts}
-        weekDates={a.weekDates}
-        entries={a.entries}
-        employees={a.employees}
-        salaries={a.salaries}
-        searchEmp={a.searchEmp}
-        onCycleStatus={a.cycleStatus}
-        onAddShift={() => a.setAddShiftOpen(true)}
-      />
+      {a.loadingData ? (
+        <div className="flex-1 flex items-center justify-center gap-3 text-gray-400">
+          <FontAwesomeIcon icon={faSpinner} spin className="text-2xl text-green-500" />
+          <span className="text-[14px]">Đang tải dữ liệu chấm công...</span>
+        </div>
+      ) : (
+        <AttendanceTable
+          shifts={a.shifts}
+          weekDates={a.weekDates}
+          entries={a.entries}
+          employees={a.employees}
+          salaries={a.salaries}
+          searchEmp={a.searchEmp}
+          onCycleStatus={a.cycleStatus}
+          onAddShift={() => a.setAddShiftOpen(true)}
+        />
+      )}
 
       {/* ── Legend ── */}
       <div className="flex items-center gap-[18px] px-6 py-3 bg-white border border-gray-200 border-t-slate-100 mx-6 mb-4 rounded-b-xl shadow-[0_1px_8px_rgba(0,0,0,0.06)] shrink-0 flex-wrap">

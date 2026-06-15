@@ -1,9 +1,7 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faXmark, faMoneyBill, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
-import { fmt } from '../hooks/useAttendance';
-
-interface Employee { id: string; name: string }
+import { fmt, type Employee } from '../hooks/useAttendance';
 
 interface Props {
   employees: Employee[];
@@ -41,6 +39,9 @@ const SalaryModal: React.FC<Props> = ({
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-2 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded">
+        {employees.length === 0 && (
+          <p className="text-center text-[13px] text-gray-400 py-6">Chưa có nhân viên</p>
+        )}
         {employees.map(emp => {
           const rawVal = salaryEdit[emp.id] ?? '';
           const numVal = parseInt(rawVal.replace(/\D/g, '') || '0', 10);
@@ -51,7 +52,8 @@ const SalaryModal: React.FC<Props> = ({
               style={{ gridTemplateColumns: '1fr 160px 120px' }}
             >
               <div className="flex flex-col gap-0.5">
-                <span className="text-[13.5px] font-semibold text-slate-900">{emp.name}</span>
+                {/* fullName thay vì name */}
+                <span className="text-[13.5px] font-semibold text-slate-900">{emp.fullName}</span>
                 <span className="text-[11px] text-gray-400 font-mono">{emp.id}</span>
               </div>
               <div className="flex items-center border-[1.5px] border-gray-200 rounded-lg bg-white overflow-hidden transition-all focus-within:border-amber-400 focus-within:shadow-[0_0_0_3px_rgba(245,158,11,0.12)]">
