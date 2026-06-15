@@ -187,3 +187,50 @@ export interface QueryProductDto {
   page?: number;
   limit?: number;
 }
+// ─── THÊM VÀO src/types.ts ─────────────────────────────────────────────────
+// Paste phần này vào cuối file src/types.ts
+
+export type CustomerTier = 'bronze' | 'silver' | 'gold' | 'platinum';
+
+export interface Customer {
+  id: number;
+  name: string;
+  phone: string;
+  email?: string;
+  points: number;
+  totalSpent: number;
+  tier: CustomerTier;
+  note?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCustomerDto {
+  name: string;
+  phone: string;
+  email?: string;
+  note?: string;
+}
+
+export interface UpdatePointsDto {
+  delta: number;       // + tích điểm, - dùng điểm
+  reason?: string;
+}
+
+// ─── POINTS CONFIG (có thể đặt trong constants file) ────────────────────────
+// 1 điểm = 1.000₫ chi tiêu  →  rate = 0.001
+// 1 điểm đổi = 1.000₫ giảm giá
+export const POINTS_EARN_RATE = 0.001;   // total * rate = points earned
+export const POINTS_REDEEM_VALUE = 1000; // 1 point = 1.000₫
+
+export const TIER_CONFIG: Record<CustomerTier, {
+  label: string;
+  color: string;
+  bg: string;
+  minSpent: number;
+}> = {
+  bronze: { label: 'Đồng', color: '#92400e', bg: '#fef3c7', minSpent: 0 },
+  silver: { label: 'Bạc', color: '#475569', bg: '#f1f5f9', minSpent: 2_000_000 },
+  gold: { label: 'Vàng', color: '#b45309', bg: '#fef9c3', minSpent: 5_000_000 },
+  platinum: { label: 'Bạch kim', color: '#6d28d9', bg: '#ede9fe', minSpent: 15_000_000 },
+};

@@ -1,11 +1,15 @@
 // src/components/cashier/components/OrderPanel.tsx
+// THAY ĐỔI SO VỚI PHIÊN BẢN TRƯỚC:
+//   - Thêm CustomerSearch ngay dưới table label
+//   - Truyền selectedCustomer + onSelectCustomer
 import React from 'react';
 import type { SelectedTable, CartItem, FlatTable, PaymentModalState } from '../hooks/useCashier';
 import type { MenuItem } from '../../../types/cashier.types';
-import type { Order } from '../../../types';
+import type { Order, Customer } from '../../../types';
 import { fmt } from '../hooks/useCashier';
 import MenuPanel from './MenuPanel';
 import OrderList from './OrderList';
+import CustomerSearch from './CustomerSearch';
 
 interface Props {
   selectedTable: SelectedTable | null;
@@ -36,6 +40,9 @@ interface Props {
   activeOrder: Order | null;
   paymentModal: PaymentModalState;
   setPaymentModal: React.Dispatch<React.SetStateAction<PaymentModalState>>;
+  // NEW
+  selectedCustomer: Customer | null;
+  onSelectCustomer: (c: Customer | null) => void;
 }
 
 const OrderPanel: React.FC<Props> = ({
@@ -48,11 +55,11 @@ const OrderPanel: React.FC<Props> = ({
   handleOpenPaymentModal, handleSendToBar,
   handleOpenTransfer, handleOpenMerge, handleCancelOrder,
   paying, activeOrder, paymentModal, setPaymentModal,
+  selectedCustomer, onSelectCustomer,
 }) => {
   const isSpecial = selectedTable && 'special' in selectedTable;
   const isOccupied = !isSpecial && selectedTable
-    ? occupied.has(Number((selectedTable as FlatTable).id))
-    : false;
+    ? occupied.has(Number((selectedTable as FlatTable).id)) : false;
   const hasItems = orderItems.length > 0;
   const hasSentItems = orderItems.some(i => i.itemStatus === 'sent' || i.itemStatus === 'done');
 
@@ -60,7 +67,7 @@ const OrderPanel: React.FC<Props> = ({
     <div className="w-[360px] shrink-0 bg-white border-l border-[#e6e6e2] flex flex-col overflow-hidden">
 
       {/* ── Table label + actions ── */}
-      <div className="flex items-center gap-2 px-[14px] py-[9px] border-b border-[#e6e6e2] shrink-0 min-h-[48px] bg-white">
+      <div className="flex items-center gap-2 px-[14px] py-[9px] border-b border-[#e6e6e2] shrink-0 min-h-[48px]">
         {selectedTable ? (
           <>
             <div className={[
@@ -83,10 +90,9 @@ const OrderPanel: React.FC<Props> = ({
               )}
             </div>
 
-            {/* Context actions */}
+            {/* Context icons */}
             {activeOrder && !isSpecial && (
               <div className="flex items-center gap-1">
-                {/* Transfer */}
                 <button
                   onClick={handleOpenTransfer}
                   title="Chuyển bàn"
@@ -96,7 +102,6 @@ const OrderPanel: React.FC<Props> = ({
                     <path d="M2 7h10M8 3l4 4-4 4" />
                   </svg>
                 </button>
-                {/* Merge */}
                 <button
                   onClick={handleOpenMerge}
                   title="Gộp bàn"
@@ -106,7 +111,6 @@ const OrderPanel: React.FC<Props> = ({
                     <path d="M1 7h5M8 7h5M7 2v10" />
                   </svg>
                 </button>
-                {/* Cancel order */}
                 <button
                   onClick={handleCancelOrder}
                   title="Hủy đơn"
@@ -122,16 +126,27 @@ const OrderPanel: React.FC<Props> = ({
             <button
               onClick={handleOpenMenu}
               className={[
-                'ml-1 text-[12px] font-semibold text-[#111110] border-[1.5px] border-[#e6e6e2] rounded-lg px-[10px] py-[4px] cursor-pointer transition-all tracking-[-0.01em] shrink-0',
-                showMenu ? 'bg-[#111110] text-white border-[#111110]' : 'bg-transparent hover:bg-[#f6f6f4]',
+                'ml-1 text-[12px] font-semibold border-[1.5px] rounded-lg px-[10px] py-[4px] cursor-pointer transition-all tracking-[-0.01em] shrink-0',
+                showMenu
+                  ? 'bg-[#111110] text-white border-[#111110]'
+                  : 'text-[#111110] bg-transparent border-[#e6e6e2] hover:bg-[#f6f6f4]',
               ].join(' ')}
             >
-              {showMenu ? '✕ Đóng' : '+ Thêm món'}
+              {showMenu ? '✕ Đóng' : '+ Thêm'}
             </button>
           </>
         ) : (
           <span className="text-[13px] text-[#a8a8a3]">Chưa chọn bàn</span>
         )}
+      </div>
+
+      {/* ── Customer search (NEW) ── */}
+      <div className="px-[14px] py-[9px] border-b border-[#f0f0ee] shrink-0">
+        <CustomerSearch
+          selectedCustomer={selectedCustomer}
+          onSelect={onSelectCustomer}
+          disabled={!selectedTable}
+        />
       </div>
 
       {/* ── Menu panel ── */}
@@ -186,23 +201,41 @@ const OrderPanel: React.FC<Props> = ({
             <span className="font-mono text-[12px] text-[#6b6b68]">{fmt(vat)}</span>
           </div>
           {paymentModal.discount > 0 && (
-            <div className="flex justify-between mb-[6px]">
+            <div className="flex justify-between mb-[4px]">
               <span className="text-[12px] text-green-600">Giảm giá</span>
               <span className="font-mono text-[12px] text-green-600">−{fmt(paymentModal.discount)}</span>
+            </div>
+          )}
+          {paymentModal.redeemDiscount > 0 && (
+            <div className="flex justify-between mb-[4px]">
+              <span className="text-[12px] text-purple-600">Dùng điểm</span>
+              <span className="font-mono text-[12px] text-purple-600">−{fmt(paymentModal.redeemDiscount)}</span>
             </div>
           )}
           <div className="h-px bg-[#ebebea] my-1.5" />
           <div className="flex justify-between items-baseline">
             <span className="text-[13px] font-semibold text-[#111110]">Tổng tiền</span>
-            <span className="font-mono text-[20px] font-bold text-[#111110] tracking-[-0.03em]">{fmt(total)}</span>
+            <span className="font-mono text-[20px] font-bold text-[#111110] tracking-[-0.03em]">
+              {fmt(paymentModal.open ? paymentModal.total : total)}
+            </span>
           </div>
+
+          {/* Points preview khi đã có khách */}
+          {selectedCustomer && !paymentModal.open && (
+            <div className="mt-2 flex items-center gap-1.5 text-[11.5px] text-[#a8a8a3]">
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                <polygon points="6,1 7.5,4.5 11,5 8.5,7.5 9,11 6,9.5 3,11 3.5,7.5 1,5 4.5,4.5" stroke="#a8a8a3" strokeWidth="1" fill="none" />
+              </svg>
+              <span>
+                Sẽ tích <strong className="text-[#6b6b68]">+{Math.floor(total * 0.001).toLocaleString()}</strong> điểm cho {selectedCustomer.name}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
       {/* ── Action buttons ── */}
       <div className="flex flex-col gap-2 px-[14px] pt-2 pb-[14px] border-t border-[#e6e6e2] shrink-0">
-
-        {/* Row 1: Print + Send bar */}
         <div className="flex gap-2">
           <button
             disabled={!hasItems || paying}
@@ -217,7 +250,6 @@ const OrderPanel: React.FC<Props> = ({
           <button
             disabled={!hasItems || paying}
             onClick={handleSendToBar}
-            title="Gửi xuống bar/bếp (chưa tính tiền)"
             className="flex-1 flex items-center justify-center gap-1.5 h-[36px] rounded-[8px] text-[12px] font-semibold text-[#92400e] border-[1.5px] border-[#fcd34d] bg-[#fffbeb] cursor-pointer transition-all hover:bg-[#fef3c7] hover:border-[#f59e0b] disabled:opacity-35 disabled:cursor-not-allowed"
           >
             {paying ? (
@@ -232,7 +264,6 @@ const OrderPanel: React.FC<Props> = ({
           </button>
         </div>
 
-        {/* Row 2: Pay (full width) */}
         <button
           className="flex items-center justify-center gap-2 h-[46px] rounded-[10px] text-[13.5px] font-semibold text-white bg-[#111110] cursor-pointer border-none transition-all hover:bg-[#2a2a28] hover:-translate-y-px hover:shadow-[0_4px_20px_rgba(0,0,0,.2)] disabled:bg-[#d4d4d0] disabled:cursor-not-allowed disabled:text-[#a0a09c] disabled:translate-y-0 disabled:shadow-none"
           disabled={!hasItems || paying}
@@ -246,6 +277,14 @@ const OrderPanel: React.FC<Props> = ({
                 <rect x="1" y="4" width="14" height="10" rx="2" /><path d="M1 7h14M4 11h2" />
               </svg>
               Thanh toán
+              {selectedCustomer && (
+                <span className="ml-1 flex items-center gap-0.5 text-[11px] opacity-70">
+                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                    <polygon points="6,1 7.5,4.5 11,5 8.5,7.5 9,11 6,9.5 3,11 3.5,7.5 1,5 4.5,4.5" fill="currentColor" />
+                  </svg>
+                  {selectedCustomer.name.split(' ').pop()}
+                </span>
+              )}
               <span className="font-mono text-[11px] opacity-50 ml-1">F9</span>
             </>
           )}

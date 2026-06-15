@@ -1,33 +1,6 @@
 // src/api/customers.api.ts
 import api from './api';
-import { extractArray } from '../utils/extractArray';
-
-export interface Customer {
-  id: number;
-  fullName: string;
-  phone: string;
-  email?: string;
-  points: number;
-  note?: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreateCustomerDto {
-  fullName: string;
-  phone: string;
-  email?: string;
-  note?: string;
-}
-
-export interface UpdateCustomerDto {
-  fullName?: string;
-  phone?: string;
-  email?: string;
-  note?: string;
-  isActive?: boolean;
-}
+import type { Customer, CreateCustomerDto, UpdatePointsDto } from '../types';
 
 export interface PaginatedCustomers {
   data: Customer[];
@@ -37,25 +10,40 @@ export interface PaginatedCustomers {
   totalPages: number;
 }
 
-export interface QueryCustomerParams {
-  search?: string;
-  isActive?: boolean;
+export interface QueryCustomerDto {
+  search?: string;   // tìm theo name hoặc phone
+  phone?: string;    // tìm chính xác theo phone
+  tier?: string;
   page?: number;
   limit?: number;
 }
 
 export const customersApi = {
-  /** GET /customers */
-  findAll: async (params?: QueryCustomerParams): Promise<PaginatedCustomers> => {
-    const { data } = await api.get<PaginatedCustomers>('/customers', { params });
-    if (data && typeof data === 'object' && 'data' in data) return data;
-    return { data: extractArray<Customer>(data), total: 0, page: 1, limit: 20, totalPages: 1 };
+  /** GET /customers — danh sách có phân trang + tìm kiếm */
+  findAll: async (query?: QueryCustomerDto): Promise<PaginatedCustomers> => {
+    const { data } = await api.get<PaginatedCustomers>('/customers', { params: query });
+    if (Array.isArray(data)) {
+      return { data: data as unknown as Customer[], total: (data as any).length, page: 1, limit: 50, totalPages: 1 };
+    }
+    return data;
   },
 
-  /** GET /customers/phone/:phone — tra cứu tại POS */
-  findByPhone: async (phone: string): Promise<Customer> => {
-    const { data } = await api.get<Customer>(`/customers/phone/${phone}`);
-    return data;
+  /** GET /customers?phone=xxx — tìm nhanh theo SĐT (trả 1 kết quả) */
+  findByPhone: async (phone: string): Promise<Customer | null> => {
+    const { data } = await api.get<PaginatedCustomers>('/customers', {
+      params: { phone: phone.trim(), limit: 5 },
+    });
+    const list: Customer[] = Array.isArray(data) ? data : (data as any)?.data ?? [];
+    return list[0] ?? null;
+  },
+
+  /** GET /customers?search=xxx — tìm theo tên hoặc SĐT (debounced) */
+  search: async (keyword: string): Promise<Customer[]> => {
+    if (!keyword.trim()) return [];
+    const { data } = await api.get<PaginatedCustomers>('/customers', {
+      params: { search: keyword.trim(), limit: 8 },
+    });
+    return Array.isArray(data) ? data : (data as any)?.data ?? [];
   },
 
   /** GET /customers/:id */
@@ -64,33 +52,21 @@ export const customersApi = {
     return data;
   },
 
-  /** POST /customers */
+  /** POST /customers — tạo khách hàng mới nhanh từ POS */
   create: async (dto: CreateCustomerDto): Promise<Customer> => {
     const { data } = await api.post<Customer>('/customers', dto);
     return data;
   },
 
+  /** PATCH /customers/:id/points — tích / dùng điểm */
+  updatePoints: async (id: number, dto: UpdatePointsDto): Promise<Customer> => {
+    const { data } = await api.patch<Customer>(`/customers/${id}/points`, dto);
+    return data;
+  },
+
   /** PATCH /customers/:id */
-  update: async (id: number, dto: UpdateCustomerDto): Promise<Customer> => {
+  update: async (id: number, dto: Partial<CreateCustomerDto>): Promise<Customer> => {
     const { data } = await api.patch<Customer>(`/customers/${id}`, dto);
-    return data;
-  },
-
-  /** PATCH /customers/:id/points */
-  updatePoints: async (id: number, delta: number, reason?: string): Promise<Customer> => {
-    const { data } = await api.patch<Customer>(`/customers/${id}/points`, { delta, reason });
-    return data;
-  },
-
-  /** PATCH /customers/:id/enable */
-  enable: async (id: number): Promise<Customer> => {
-    const { data } = await api.patch<Customer>(`/customers/${id}/enable`);
-    return data;
-  },
-
-  /** PATCH /customers/:id/disable */
-  disable: async (id: number): Promise<Customer> => {
-    const { data } = await api.patch<Customer>(`/customers/${id}/disable`);
     return data;
   },
 };

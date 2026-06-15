@@ -24,7 +24,6 @@ const CashierPOS: React.FC = () => {
 
   return (
     <>
-      {/* ── Main layout ── */}
       <div className="flex h-[calc(100vh-88px)] bg-[#f6f6f4] overflow-hidden font-['DM_Sans',sans-serif]">
         <TableGrid
           zones={cashier.zones}
@@ -74,41 +73,26 @@ const CashierPOS: React.FC = () => {
           activeOrder={cashier.activeOrder}
           paymentModal={cashier.paymentModal}
           setPaymentModal={cashier.setPaymentModal}
+          selectedCustomer={cashier.selectedCustomer}
+          onSelectCustomer={cashier.handleSelectCustomer}
         />
       </div>
-
-      {/* ── Modals (rendered outside flex to avoid clip) ── */}
 
       <PaymentModal
         modal={cashier.paymentModal}
         paying={cashier.paying}
+        selectedCustomer={cashier.selectedCustomer}
         onClose={cashier.handleClosePaymentModal}
         onConfirm={cashier.handleConfirmPayment}
         onCancelQr={cashier.handleCancelQr}
         onMethodChange={method =>
-          cashier.setPaymentModal(m => ({
-            ...m,
-            method,
-            qrCode: null,
-            pollingStatus: 'idle',
-          }))
+          cashier.setPaymentModal(m => ({ ...m, method, qrCode: null, pollingStatus: 'idle' }))
         }
         onReceivedChange={amount =>
           cashier.setPaymentModal(m => ({ ...m, receivedAmount: amount }))
         }
-        onDiscountChange={(value, type, grossTotal) => {
-          const discountAmt = type === 'percent'
-            ? Math.round(grossTotal * (Math.min(value, 100) / 100))
-            : Math.min(value, grossTotal);
-          const newTotal = Math.max(0, grossTotal - discountAmt);
-          cashier.setPaymentModal(m => ({
-            ...m,
-            discount: discountAmt,
-            discountType: type,
-            total: newTotal,
-            receivedAmount: m.method === 'cash' ? newTotal : m.receivedAmount,
-          }));
-        }}
+        onDiscountChange={cashier.handleDiscountChange}
+        onRedeemChange={cashier.handleRedeemChange}
       />
 
       <TransferTableModal
@@ -129,11 +113,7 @@ const CashierPOS: React.FC = () => {
         onClose={cashier.handleCloseMerge}
       />
 
-      {/* ── Toast notifications ── */}
-      <ToastStack
-        toasts={cashier.toasts}
-        onRemove={cashier.removeToast}
-      />
+      <ToastStack toasts={cashier.toasts} onRemove={cashier.removeToast} />
     </>
   );
 };

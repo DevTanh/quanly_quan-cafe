@@ -1,8 +1,16 @@
 // src/components/cashier/hooks/useCashier.ts
+// DIFF: thêm customer state, points earn/redeem, tích hợp vào payment flow
+// Chỉ liệt kê những phần THÊM/ĐỔI so với file trước — paste vào đúng vị trí
+
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { cashierApi } from '../../../api/cashier.api';
+import { customersApi } from '../../../api/customers.api';
 import type { Zone, MenuItem } from '../../../types/cashier.types';
-import type { CreatePaymentDto, Order, OrderItem } from '../../../types';
+import type { CreatePaymentDto, Order, OrderItem, Customer } from '../../../types';
+import { POINTS_EARN_RATE, POINTS_REDEEM_VALUE } from '../../../types';
+
+// ─── Re-export constants cho components dùng ─────────────────────────────────
+export { TIER_CONFIG, POINTS_EARN_RATE, POINTS_REDEEM_VALUE } from '../../../types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -27,8 +35,8 @@ export type SelectedTable = FlatTable | SpecialTable;
 export interface CartItem extends MenuItem {
   qty: number;
   note?: string;
-  itemStatus?: 'new' | 'sent' | 'done' | 'cancelled'; // status từ BE
-  orderItemId?: number; // id trong DB nếu đã save
+  itemStatus?: 'new' | 'sent' | 'done' | 'cancelled';
+  orderItemId?: number;
 }
 
 export type PaymentMethod = 'cash' | 'bank_transfer' | 'payos_qr';
@@ -37,25 +45,26 @@ export interface PaymentModalState {
   open: boolean;
   orderId: number | null;
   orderVersion: number;
-  total: number;
+  total: number;             // tổng tiền cuối (sau discount + redeem)
+  grossTotal: number;        // subtotal + VAT trước giảm giá
   method: PaymentMethod;
   receivedAmount: number;
-  discount: number;        // NEW: giảm giá (VNĐ)
-  discountType: 'fixed' | 'percent'; // NEW
+  discount: number;          // giảm giá thủ công (₫)
+  discountType: 'fixed' | 'percent';
+  redeemedPoints: number;    // NEW: số điểm đang dùng
+  redeemDiscount: number;    // NEW: quy ra tiền (redeemedPoints * POINTS_REDEEM_VALUE)
   qrCode: string | null;
   checkoutUrl: string | null;
   paymentLinkId: string | null;
   pollingStatus: 'idle' | 'polling' | 'paid' | 'failed' | 'cancelled';
 }
 
-// NEW: Transfer modal state
 export interface TransferModalState {
   open: boolean;
   fromTable: SelectedTable | null;
   orderId: number | null;
 }
 
-// NEW: Merge modal state
 export interface MergeModalState {
   open: boolean;
   primaryTable: SelectedTable | null;
@@ -68,8 +77,7 @@ export interface Toast {
   message: string;
 }
 
-export const fmt = (n: number) =>
-  n.toLocaleString('vi-VN') + '₫';
+export const fmt = (n: number) => n.toLocaleString('vi-VN') + '₫';
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
@@ -83,40 +91,33 @@ export function useCashier() {
   const [menuFetched, setMenuFetched] = useState(false);
   const [occupied, setOccupied] = useState<Set<number>>(new Set());
 
-  /* ── Active order state ── */
+  /* ── Active order ── */
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
 
-  /* ── Toasts (thay thế alert) ── */
+  /* ── Customer (NEW) ── */
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+
+  /* ── Toasts ── */
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   /* ── Payment modal ── */
-  const [paymentModal, setPaymentModal] = useState<PaymentModalState>({
-    open: false,
-    orderId: null,
-    orderVersion: 1,
-    total: 0,
-    method: 'cash',
-    receivedAmount: 0,
-    discount: 0,
-    discountType: 'fixed',
-    qrCode: null,
-    checkoutUrl: null,
-    paymentLinkId: null,
+  const EMPTY_MODAL: PaymentModalState = {
+    open: false, orderId: null, orderVersion: 1,
+    total: 0, grossTotal: 0,
+    method: 'cash', receivedAmount: 0,
+    discount: 0, discountType: 'fixed',
+    redeemedPoints: 0, redeemDiscount: 0,
+    qrCode: null, checkoutUrl: null, paymentLinkId: null,
     pollingStatus: 'idle',
-  });
+  };
+  const [paymentModal, setPaymentModal] = useState<PaymentModalState>(EMPTY_MODAL);
 
-  /* ── Transfer modal ── */
+  /* ── Transfer / Merge modals ── */
   const [transferModal, setTransferModal] = useState<TransferModalState>({
-    open: false,
-    fromTable: null,
-    orderId: null,
+    open: false, fromTable: null, orderId: null,
   });
-
-  /* ── Merge modal ── */
   const [mergeModal, setMergeModal] = useState<MergeModalState>({
-    open: false,
-    primaryTable: null,
-    primaryOrderId: null,
+    open: false, primaryTable: null, primaryOrderId: null,
   });
 
   /* ── UI state ── */
@@ -134,10 +135,9 @@ export function useCashier() {
   /* ── Refs ── */
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const qrPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Guard chống double-click
   const isSubmittingRef = useRef(false);
 
-  // ─── Toast helpers ───────────────────────────────────────────────────────
+  // ─── Toasts ──────────────────────────────────────────────────────────────
 
   const addToast = useCallback((type: Toast['type'], message: string) => {
     const id = Date.now().toString();
@@ -149,16 +149,11 @@ export function useCashier() {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
-  // ─── Fetch occupied ──────────────────────────────────────────────────────
+  // ─── Occupied / zones ─────────────────────────────────────────────────────
 
   const fetchOccupied = useCallback(async () => {
-    try {
-      const ids = await cashierApi.getOccupiedTableIds();
-      setOccupied(ids);
-    } catch { /* giữ nguyên state cũ */ }
+    try { setOccupied(await cashierApi.getOccupiedTableIds()); } catch { /* keep */ }
   }, []);
-
-  // ─── Load zones ──────────────────────────────────────────────────────────
 
   const loadZones = useCallback(() => {
     setLoadingZones(true);
@@ -183,18 +178,10 @@ export function useCashier() {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'F9') {
         e.preventDefault();
-        if (orderItems.length > 0 && selectedTable && !paying) {
-          handleOpenPaymentModal();
-        }
-      }
-      if (e.key === 'F4') {
-        e.preventDefault();
-        // TODO: focus customer search input
+        if (orderItems.length > 0 && selectedTable && !paying) handleOpenPaymentModal();
       }
       if (e.key === 'Escape') {
-        if (paymentModal.open && paymentModal.pollingStatus !== 'polling') {
-          handleClosePaymentModal();
-        }
+        if (paymentModal.open && paymentModal.pollingStatus !== 'polling') handleClosePaymentModal();
       }
     };
     window.addEventListener('keydown', handler);
@@ -202,22 +189,21 @@ export function useCashier() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderItems.length, selectedTable, paying, paymentModal.open, paymentModal.pollingStatus]);
 
-  // ─── Lazy load menu ──────────────────────────────────────────────────────
+  // ─── Menu ─────────────────────────────────────────────────────────────────
 
   const handleOpenMenu = async () => {
     setShowMenu(p => !p);
     if (!menuFetched) {
       setLoadingMenu(true);
       try {
-        const items = await cashierApi.getMenuItems();
-        setMenuItems(items);
+        setMenuItems(await cashierApi.getMenuItems());
         setMenuFetched(true);
-      } catch { /* giữ rỗng */ }
+      } catch { /* keep empty */ }
       finally { setLoadingMenu(false); }
     }
   };
 
-  // ─── Derived ─────────────────────────────────────────────────────────────
+  // ─── Derived ──────────────────────────────────────────────────────────────
 
   const allTables = useMemo<FlatTable[]>(() =>
     zones.flatMap(z => z.tables.map(t => ({ ...t, zoneName: z.name, zoneId: z.id }))),
@@ -236,10 +222,10 @@ export function useCashier() {
   const totalActive = allTables.filter(t => t.status === 'active').length;
   const totalOcc = allTables.filter(t => occupied.has(Number(t.id))).length;
 
-  const categories = useMemo(() => {
-    const cats = Array.from(new Set(menuItems.map(m => m.category).filter(Boolean)));
-    return cats;
-  }, [menuItems]);
+  const categories = useMemo(() =>
+    Array.from(new Set(menuItems.map(m => m.category).filter(Boolean))),
+    [menuItems],
+  );
 
   const filteredMenu = useMemo(() => menuItems.filter(m => {
     const matchName = m.name.toLowerCase().includes(searchMenu.toLowerCase());
@@ -247,14 +233,15 @@ export function useCashier() {
     return matchName && matchCat;
   }), [menuItems, searchMenu, searchCategory]);
 
-  // ─── Pricing ─────────────────────────────────────────────────────────────
+  // ─── Pricing ──────────────────────────────────────────────────────────────
 
   const subtotal = orderItems.reduce((s, i) => s + i.price * i.qty, 0);
   const vat = Math.round(subtotal * 0.08);
-  const discount = paymentModal.open ? paymentModal.discount : 0;
-  const total = Math.max(0, subtotal + vat - discount);
+  const grossTotal = subtotal + vat;
+  // total hiển thị ngoài panel = trước khi áp discount/redeem (chỉ áp trong modal)
+  const total = grossTotal;
 
-  // ─── Cart helpers ────────────────────────────────────────────────────────
+  // ─── Cart ─────────────────────────────────────────────────────────────────
 
   const addItem = (item: MenuItem) =>
     setOrderItems(prev => {
@@ -272,19 +259,34 @@ export function useCashier() {
   const updateItemNote = (id: string, note: string) =>
     setOrderItems(prev => prev.map(i => i.id === id ? { ...i, note } : i));
 
-  // ─── Select table ────────────────────────────────────────────────────────
+  // ─── Customer (NEW) ───────────────────────────────────────────────────────
+
+  const handleSelectCustomer = (c: Customer | null) => {
+    setSelectedCustomer(c);
+    // Reset redeem khi thay đổi khách
+    setPaymentModal(m => ({ ...m, redeemedPoints: 0, redeemDiscount: 0 }));
+  };
+
+  // ─── Compute final modal total (helper) ───────────────────────────────────
+
+  const computeModalTotal = (
+    gross: number,
+    discountAmt: number,
+    redeemDisc: number,
+  ) => Math.max(0, gross - discountAmt - redeemDisc);
+
+  // ─── Select table ──────────────────────────────────────────────────────────
 
   const selectTable = async (tbl: SelectedTable) => {
-    // Guard: nếu cart đang có item chưa save, hỏi xác nhận
     if (orderItems.length > 0 && !activeOrder) {
       const ok = window.confirm('Bạn đang có món chưa lưu. Chuyển bàn sẽ mất dữ liệu. Tiếp tục?');
       if (!ok) return;
     }
-
     setSelectedTable(tbl);
     setOrderItems([]);
     setShowMenu(false);
     setActiveOrder(null);
+    setSelectedCustomer(null); // clear customer khi đổi bàn
 
     const isSpecial = 'special' in tbl;
     if (!isSpecial && occupied.has(Number(tbl.id))) {
@@ -295,22 +297,18 @@ export function useCashier() {
           const restored: CartItem[] = (existing.items ?? [])
             .filter((oi: OrderItem) => oi.status !== 'cancelled')
             .map((oi: OrderItem) => ({
-              id: String(oi.productId),
-              name: oi.productName,
-              price: Number(oi.unitPrice),
-              category: '',
-              qty: oi.quantity,
-              note: oi.note,
-              itemStatus: oi.status,
-              orderItemId: oi.id,
+              id: String(oi.productId), name: oi.productName,
+              price: Number(oi.unitPrice), category: '',
+              qty: oi.quantity, note: oi.note,
+              itemStatus: oi.status, orderItemId: oi.id,
             }));
           if (restored.length > 0) setOrderItems(restored);
         }
-      } catch { /* bỏ qua */ }
+      } catch { /* ignore */ }
     }
   };
 
-  // ─── Transfer table ──────────────────────────────────────────────────────
+  // ─── Transfer ─────────────────────────────────────────────────────────────
 
   const handleOpenTransfer = () => {
     if (!selectedTable || !activeOrder) return;
@@ -318,26 +316,20 @@ export function useCashier() {
   };
 
   const handleTransferToTable = async (targetTable: FlatTable) => {
-    const { orderId } = transferModal;
-    if (!orderId) return;
-
-    // Kiểm tra bàn đích không có order đang mở
     if (occupied.has(Number(targetTable.id))) {
       addToast('error', `${targetTable.name} đang có khách, không thể chuyển bàn`);
       return;
     }
-
     try {
       setPaying(true);
-      // BE chưa có endpoint transfer → workaround: cancel order cũ, tạo order mới trên bàn mới
-      // Nếu BE có /orders/:id/transfer thì gọi trực tiếp
+      const { orderId } = transferModal;
+      if (!orderId) return;
       await cashierApi.cancelOrder(orderId);
       const newOrder = await cashierApi.createOrder({
         tableId: Number(targetTable.id),
         items: orderItems.map(i => ({ productId: Number(i.id), quantity: i.qty, note: i.note })),
       });
       await cashierApi.sendToBar(newOrder.id);
-
       setTransferModal({ open: false, fromTable: null, orderId: null });
       await fetchOccupied();
       await selectTable(targetTable);
@@ -345,15 +337,13 @@ export function useCashier() {
     } catch (err: any) {
       const msg = err?.response?.data?.message;
       addToast('error', Array.isArray(msg) ? msg[0] : msg ?? 'Chuyển bàn thất bại');
-    } finally {
-      setPaying(false);
-    }
+    } finally { setPaying(false); }
   };
 
   const handleCloseTransfer = () =>
     setTransferModal({ open: false, fromTable: null, orderId: null });
 
-  // ─── Merge table ─────────────────────────────────────────────────────────
+  // ─── Merge ────────────────────────────────────────────────────────────────
 
   const handleOpenMerge = () => {
     if (!selectedTable || !activeOrder) return;
@@ -361,46 +351,28 @@ export function useCashier() {
   };
 
   const handleMergeWithTable = async (targetTable: FlatTable) => {
-    const { primaryOrderId } = mergeModal;
-    if (!primaryOrderId) return;
-
     if (!occupied.has(Number(targetTable.id))) {
       addToast('error', `${targetTable.name} chưa có khách, không thể gộp`);
       return;
     }
-
     try {
       setPaying(true);
-      // Lấy order của bàn đích
       const targetOrder = await cashierApi.getTableOrder(Number(targetTable.id));
-      if (!targetOrder) {
-        addToast('error', 'Không tìm thấy đơn của bàn kia');
-        return;
-      }
+      if (!targetOrder) { addToast('error', 'Không tìm thấy đơn của bàn kia'); return; }
 
-      // Gộp items: merge cart hiện tại vào order của bàn đích
       const targetItems = (targetOrder.items ?? [])
         .filter((oi: OrderItem) => oi.status !== 'cancelled')
         .map((oi: OrderItem) => ({ productId: oi.productId, quantity: oi.quantity, note: oi.note }));
 
-      const currentItems = orderItems.map(i => ({
-        productId: Number(i.id),
-        quantity: i.qty,
-        note: i.note,
-      }));
-
-      // Merge: nếu cùng productId thì cộng qty
       const merged = [...targetItems];
-      for (const ci of currentItems) {
-        const ex = merged.find(m => m.productId === ci.productId);
-        if (ex) ex.quantity += ci.quantity;
-        else merged.push(ci);
+      for (const ci of orderItems) {
+        const ex = merged.find(m => m.productId === Number(ci.id));
+        if (ex) ex.quantity += ci.qty;
+        else merged.push({ productId: Number(ci.id), quantity: ci.qty, note: ci.note });
       }
 
       await cashierApi.updateOrderItems(targetOrder.id, merged, targetOrder.version);
-      // Hủy order bàn hiện tại
-      await cashierApi.cancelOrder(primaryOrderId);
-
+      if (mergeModal.primaryOrderId) await cashierApi.cancelOrder(mergeModal.primaryOrderId);
       setMergeModal({ open: false, primaryTable: null, primaryOrderId: null });
       await fetchOccupied();
       await selectTable(targetTable);
@@ -408,15 +380,13 @@ export function useCashier() {
     } catch (err: any) {
       const msg = err?.response?.data?.message;
       addToast('error', Array.isArray(msg) ? msg[0] : msg ?? 'Gộp bàn thất bại');
-    } finally {
-      setPaying(false);
-    }
+    } finally { setPaying(false); }
   };
 
   const handleCloseMerge = () =>
     setMergeModal({ open: false, primaryTable: null, primaryOrderId: null });
 
-  // ─── Send to bar ─────────────────────────────────────────────────────────
+  // ─── Send to bar ──────────────────────────────────────────────────────────
 
   const handleSendToBar = async () => {
     if (!selectedTable || orderItems.length === 0) return;
@@ -424,9 +394,8 @@ export function useCashier() {
     isSubmittingRef.current = true;
     setPaying(true);
     try {
-      const tableId = selectedTable.id === 'takeaway' || selectedTable.id === 'delivery'
+      const tableId = ['takeaway', 'delivery'].includes(String(selectedTable.id))
         ? 0 : Number(selectedTable.id);
-
       let order: Order;
       if (activeOrder) {
         order = await cashierApi.updateOrderItems(
@@ -440,17 +409,13 @@ export function useCashier() {
           items: orderItems.map(i => ({ productId: Number(i.id), quantity: i.qty, note: i.note })),
         });
       }
-
       await cashierApi.sendToBar(order.id);
       const refreshed = await cashierApi.getOrder(order.id);
       setActiveOrder(refreshed);
-
-      // Sync item statuses
       setOrderItems(prev => prev.map(ci => {
         const oi = refreshed.items?.find((i: OrderItem) => String(i.productId) === ci.id);
         return oi ? { ...ci, itemStatus: oi.status, orderItemId: oi.id } : ci;
       }));
-
       await fetchOccupied();
       addToast('success', `Đã gửi bar! Đơn #${order.id}`);
     } catch (err: any) {
@@ -462,7 +427,7 @@ export function useCashier() {
     }
   };
 
-  // ─── Open payment modal ──────────────────────────────────────────────────
+  // ─── Open payment modal ───────────────────────────────────────────────────
 
   const handleOpenPaymentModal = async () => {
     if (!selectedTable || orderItems.length === 0) return;
@@ -470,9 +435,8 @@ export function useCashier() {
     isSubmittingRef.current = true;
     setPaying(true);
     try {
-      const tableId = selectedTable.id === 'takeaway' || selectedTable.id === 'delivery'
+      const tableId = ['takeaway', 'delivery'].includes(String(selectedTable.id))
         ? 0 : Number(selectedTable.id);
-
       let order: Order;
       if (activeOrder) {
         order = await cashierApi.updateOrderItems(
@@ -486,27 +450,18 @@ export function useCashier() {
           items: orderItems.map(i => ({ productId: Number(i.id), quantity: i.qty, note: i.note })),
         });
       }
-
       setActiveOrder(order);
-      const rawSubtotal = orderItems.reduce((s, i) => s + i.price * i.qty, 0);
-      const rawVat = Math.round(rawSubtotal * 0.08);
-      const rawTotal = rawSubtotal + rawVat;
-
-      setPaymentModal(prev => ({
-        ...prev,
+      const rawGross = grossTotal;
+      setPaymentModal({
         open: true,
-        orderId: order.id,
-        orderVersion: order.version,
-        total: rawTotal,
-        method: 'cash',
-        receivedAmount: rawTotal,
-        discount: 0,
-        discountType: 'fixed',
-        qrCode: null,
-        checkoutUrl: null,
-        paymentLinkId: null,
+        orderId: order.id, orderVersion: order.version,
+        grossTotal: rawGross, total: rawGross,
+        method: 'cash', receivedAmount: rawGross,
+        discount: 0, discountType: 'fixed',
+        redeemedPoints: 0, redeemDiscount: 0,
+        qrCode: null, checkoutUrl: null, paymentLinkId: null,
         pollingStatus: 'idle',
-      }));
+      });
     } catch (err: any) {
       const msg = err?.response?.data?.message;
       addToast('error', Array.isArray(msg) ? msg[0] : msg ?? 'Không thể mở thanh toán');
@@ -516,13 +471,43 @@ export function useCashier() {
     }
   };
 
-  // ─── QR Polling ──────────────────────────────────────────────────────────
+  // ─── Points redeem (NEW) ──────────────────────────────────────────────────
+
+  const handleRedeemChange = (points: number) => {
+    const redeemDiscount = points * POINTS_REDEEM_VALUE;
+    const newTotal = computeModalTotal(
+      paymentModal.grossTotal,
+      paymentModal.discount,
+      redeemDiscount,
+    );
+    setPaymentModal(m => ({
+      ...m,
+      redeemedPoints: points,
+      redeemDiscount,
+      total: newTotal,
+      receivedAmount: m.method === 'cash' ? newTotal : m.receivedAmount,
+    }));
+  };
+
+  // ─── Discount change ──────────────────────────────────────────────────────
+
+  const handleDiscountChange = (value: number, type: 'fixed' | 'percent', grossTotal: number) => {
+    const discountAmt = type === 'percent'
+      ? Math.round(grossTotal * (Math.min(value, 100) / 100))
+      : Math.min(value, grossTotal);
+    const newTotal = computeModalTotal(grossTotal, discountAmt, paymentModal.redeemDiscount);
+    setPaymentModal(m => ({
+      ...m,
+      discount: discountAmt, discountType: type,
+      total: newTotal,
+      receivedAmount: m.method === 'cash' ? newTotal : m.receivedAmount,
+    }));
+  };
+
+  // ─── QR Polling ───────────────────────────────────────────────────────────
 
   const stopQrPolling = () => {
-    if (qrPollRef.current) {
-      clearInterval(qrPollRef.current);
-      qrPollRef.current = null;
-    }
+    if (qrPollRef.current) { clearInterval(qrPollRef.current); qrPollRef.current = null; }
   };
 
   const startQrPolling = (orderId: number) => {
@@ -530,29 +515,30 @@ export function useCashier() {
     qrPollRef.current = setInterval(async () => {
       try {
         const result = await cashierApi.getPaymentStatus(orderId);
-        const st = result.paymentStatus;
-        if (st === 'paid') {
+        if (result.paymentStatus === 'paid') {
           stopQrPolling();
           setPaymentModal(m => ({ ...m, pollingStatus: 'paid' }));
           setTimeout(() => resetAfterPayment(), 2000);
-        } else if (st === 'failed' || st === 'cancelled') {
+        } else if (result.paymentStatus === 'failed' || result.paymentStatus === 'cancelled') {
           stopQrPolling();
-          setPaymentModal(m => ({ ...m, pollingStatus: st === 'failed' ? 'failed' : 'cancelled' }));
+          setPaymentModal(m => ({
+            ...m, pollingStatus: result.paymentStatus === 'failed' ? 'failed' : 'cancelled',
+          }));
         }
-      } catch { /* ignore polling errors */ }
+      } catch { /* ignore */ }
     }, 3000);
   };
 
-  // ─── Confirm payment ─────────────────────────────────────────────────────
+  // ─── Confirm payment ──────────────────────────────────────────────────────
 
   const handleConfirmPayment = async () => {
-    const { orderId, method, receivedAmount, total: modalTotal, paymentLinkId, pollingStatus } = paymentModal;
+    const { orderId, method, receivedAmount, paymentLinkId, pollingStatus, redeemedPoints } = paymentModal;
     if (!orderId) return;
     if (isSubmittingRef.current) return;
     isSubmittingRef.current = true;
     setPaying(true);
     try {
-      // FIX: Nếu đã có paymentLinkId (đã tạo QR rồi), resume polling thay vì tạo mới
+      // Resume QR nếu đã có link
       if (method === 'payos_qr' && paymentLinkId && pollingStatus === 'idle') {
         setPaymentModal(m => ({ ...m, pollingStatus: 'polling' }));
         startQrPolling(orderId);
@@ -563,7 +549,6 @@ export function useCashier() {
         method,
         ...(method === 'cash' ? { receivedAmount } : {}),
       };
-
       const result = await cashierApi.pay(orderId, dto);
 
       if (method === 'payos_qr') {
@@ -577,15 +562,43 @@ export function useCashier() {
         }));
         startQrPolling(orderId);
       } else {
+        // Tích / dùng điểm sau khi thanh toán thành công (NEW)
+        if (selectedCustomer) {
+          try {
+            const orderFinalTotal = paymentModal.total;
+            const earnedPoints = Math.floor(orderFinalTotal * POINTS_EARN_RATE);
+
+            if (redeemedPoints > 0) {
+              // Dùng điểm: trừ trước
+              await customersApi.updatePoints(selectedCustomer.id, {
+                delta: -redeemedPoints,
+                reason: `Dùng điểm cho đơn #${orderId}`,
+              });
+            }
+            if (earnedPoints > 0) {
+              // Tích điểm
+              await customersApi.updatePoints(selectedCustomer.id, {
+                delta: earnedPoints,
+                reason: `Tích điểm từ đơn #${orderId}`,
+              });
+            }
+
+            const verb = redeemedPoints > 0
+              ? `Đã dùng ${redeemedPoints} điểm, tích thêm ${earnedPoints} điểm`
+              : `Đã tích ${earnedPoints} điểm cho ${selectedCustomer.name}`;
+            addToast('success', verb);
+          } catch {
+            addToast('info', 'Thanh toán thành công (cập nhật điểm thất bại — vui lòng điều chỉnh thủ công)');
+          }
+        }
+
         resetAfterPayment();
         addToast('success', `Thanh toán thành công! Đơn #${orderId}`);
       }
     } catch (err: any) {
       const msg = err?.response?.data?.message;
-      // FIX: "Đơn đang có giao dịch QR chờ" → resume polling
       const msgStr = Array.isArray(msg) ? msg[0] : msg ?? '';
       if (method === 'payos_qr' && msgStr.includes('chờ thanh toán')) {
-        // Payment đang pending, lấy lại QR data và resume
         try {
           const statusResult = await cashierApi.getPaymentStatus(orderId);
           if (statusResult.paymentStatus === 'pending') {
@@ -603,33 +616,26 @@ export function useCashier() {
     }
   };
 
-  // ─── Cancel QR ───────────────────────────────────────────────────────────
+  // ─── Cancel QR ────────────────────────────────────────────────────────────
 
   const handleCancelQr = async () => {
     const { orderId } = paymentModal;
     if (!orderId) return;
     stopQrPolling();
-    try {
-      await cashierApi.cancelPayment(orderId);
-    } catch { /* ignore */ }
+    try { await cashierApi.cancelPayment(orderId); } catch { /* ignore */ }
     setPaymentModal(m => ({
-      ...m,
-      qrCode: null,
-      checkoutUrl: null,
-      paymentLinkId: null,
-      pollingStatus: 'idle',
+      ...m, qrCode: null, checkoutUrl: null, paymentLinkId: null, pollingStatus: 'idle',
     }));
   };
 
-  // ─── Close payment modal ─────────────────────────────────────────────────
+  // ─── Close modal ──────────────────────────────────────────────────────────
 
   const handleClosePaymentModal = () => {
-    // FIX: luôn stop polling khi đóng
     stopQrPolling();
     setPaymentModal(m => ({ ...m, open: false, qrCode: null, pollingStatus: 'idle' }));
   };
 
-  // ─── Reset after payment ─────────────────────────────────────────────────
+  // ─── Reset ────────────────────────────────────────────────────────────────
 
   const resetAfterPayment = () => {
     stopQrPolling();
@@ -637,20 +643,8 @@ export function useCashier() {
     setSelectedTable(null);
     setShowMenu(false);
     setActiveOrder(null);
-    setPaymentModal({
-      open: false,
-      orderId: null,
-      orderVersion: 1,
-      total: 0,
-      method: 'cash',
-      receivedAmount: 0,
-      discount: 0,
-      discountType: 'fixed',
-      qrCode: null,
-      checkoutUrl: null,
-      paymentLinkId: null,
-      pollingStatus: 'idle',
-    });
+    setSelectedCustomer(null);
+    setPaymentModal(EMPTY_MODAL);
     fetchOccupied();
   };
 
@@ -666,6 +660,7 @@ export function useCashier() {
       setOrderItems([]);
       setSelectedTable(null);
       setActiveOrder(null);
+      setSelectedCustomer(null);
       await fetchOccupied();
     } catch (err: any) {
       const msg = err?.response?.data?.message;
@@ -673,10 +668,9 @@ export function useCashier() {
     }
   };
 
-  // ─── Return ──────────────────────────────────────────────────────────────
+  // ─── Return ───────────────────────────────────────────────────────────────
 
   return {
-    // state
     zones, loadingZones, errorZones, loadZones,
     menuItems, filteredMenu, loadingMenu, menuFetched,
     occupied, activeZoneId, setActiveZoneId,
@@ -688,30 +682,25 @@ export function useCashier() {
     categories,
     showMenu, handleOpenMenu,
     page, setPage, totalPages, pagedTables,
-    totalActive, totalOcc, zoneTables,
-    subtotal, vat, total,
+    totalActive, totalOcc, zoneTables, allTables,
+    subtotal, vat, grossTotal, total,
     paying,
     activeOrder,
     toasts, removeToast,
-    // payment flow
+    // customer (NEW)
+    selectedCustomer, handleSelectCustomer,
+    // payment
     paymentModal, setPaymentModal,
     handleOpenPaymentModal,
     handleSendToBar,
     handleConfirmPayment,
     handleCancelQr,
     handleClosePaymentModal,
-    // transfer
-    transferModal,
-    handleOpenTransfer,
-    handleTransferToTable,
-    handleCloseTransfer,
-    // merge
-    mergeModal,
-    handleOpenMerge,
-    handleMergeWithTable,
-    handleCloseMerge,
-    // cancel order
+    handleDiscountChange,
+    handleRedeemChange,
+    // transfer / merge / cancel
+    transferModal, handleOpenTransfer, handleTransferToTable, handleCloseTransfer,
+    mergeModal, handleOpenMerge, handleMergeWithTable, handleCloseMerge,
     handleCancelOrder,
-    allTables,
   };
 }
