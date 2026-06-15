@@ -1,5 +1,6 @@
 // src/components/cashier/components/PaymentModal.tsx
 import React, { useEffect, useRef, useState } from 'react';
+import QRCode from 'qrcode';
 import type { PaymentModalState, PaymentMethod } from '../hooks/useCashier';
 import { fmt } from '../hooks/useCashier';
 
@@ -57,8 +58,10 @@ const PaymentModal: React.FC<Props> = ({
   onMethodChange, onReceivedChange, onDiscountChange,
 }) => {
   const receivedRef = useRef<HTMLInputElement>(null);
+  const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const [discountInput, setDiscountInput] = useState('');
   const [discountType, setDiscountType] = useState<'fixed' | 'percent'>('fixed');
+  const [qrRenderError, setQrRenderError] = useState(false);
 
   useEffect(() => {
     if (modal.open && modal.method === 'cash') {
@@ -73,6 +76,25 @@ const PaymentModal: React.FC<Props> = ({
       setDiscountType('fixed');
     }
   }, [modal.open]);
+
+  useEffect(() => {
+    if (!modal.open || modal.method !== 'payos_qr' || !modal.qrCode || !qrCanvasRef.current) return;
+
+    let cancelled = false;
+    setQrRenderError(false);
+    QRCode.toCanvas(qrCanvasRef.current, modal.qrCode, {
+      width: 220,
+      margin: 2,
+      color: { dark: '#111111', light: '#ffffff' },
+      errorCorrectionLevel: 'M',
+    }).catch(() => {
+      if (!cancelled) setQrRenderError(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [modal.open, modal.method, modal.qrCode]);
 
   if (!modal.open) return null;
 
@@ -165,19 +187,19 @@ const PaymentModal: React.FC<Props> = ({
               ) : (
                 <>
                   {modal.qrCode ? (
-                    /* FIX: dùng checkoutUrl để embed hoặc hiện QR đúng từ PayOS */
                     <div className="border-2 border-[#e6e6e2] rounded-xl p-4 inline-block bg-white">
-                      {modal.checkoutUrl ? (
-                        <iframe
-                          src={modal.checkoutUrl}
-                          title="PayOS QR"
-                          className="w-[220px] h-[280px] border-none rounded-lg"
-                          sandbox="allow-scripts allow-same-origin"
-                        />
-                      ) : (
-                        <div className="w-[200px] h-[200px] bg-[#f6f6f4] rounded-lg flex items-center justify-center text-[11px] text-[#a8a8a3] p-3 break-all">
+                      {qrRenderError ? (
+                        <div className="w-[220px] h-[220px] bg-[#f6f6f4] rounded-lg flex items-center justify-center text-[11px] text-[#a8a8a3] p-3 break-all">
                           {modal.qrCode}
                         </div>
+                      ) : (
+                        <canvas
+                          ref={qrCanvasRef}
+                          width={220}
+                          height={220}
+                          className="block rounded-lg"
+                          style={{ width: 220, height: 220 }}
+                        />
                       )}
                     </div>
                   ) : (
