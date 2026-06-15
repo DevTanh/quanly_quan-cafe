@@ -601,4 +601,58 @@ export class OrdersService {
 
     return result
   }
+  // ─── UPDATE ITEM STATUS ───────────────────────────────────────────
+  /**
+   * PATCH /orders/:orderId/items/:itemId/status
+   * Barista/Staff cập nhật trạng thái từng món: new → sent → done
+   */
+  async updateItemStatus(
+    orderId: number,
+    itemId: number,
+    newStatus: OrderItemStatus,
+  ): Promise<{ message: string; item: OrderItem }> {
+    const order = await this.findById(orderId)
+    if (!order.items) {
+      throw new NotFoundException(`Order #${orderId} không có món nào`)
+    }
+
+    const item = order.items.find((i) => i.id === itemId)
+    if (!item) {
+      throw new NotFoundException(`Món #${itemId} không thuộc order #${orderId}`)
+    }
+
+    // Validate transition hợp lệ
+    const validTransitions: Record<OrderItemStatus, OrderItemStatus[]> = {
+      [OrderItemStatus.NEW]: [OrderItemStatus.SENT, OrderItemStatus.CANCELLED],
+      [OrderItemStatus.SENT]: [OrderItemStatus.DONE, OrderItemStatus.CANCELLED],
+      [OrderItemStatus.DONE]: [],
+      [OrderItemStatus.CANCELLED]: [],
+    }
+
+    const allowed = validTransitions[item.status] ?? []
+    if (!allowed.includes(newStatus)) {
+      throw new BadRequestException(
+        `Không thể chuyển từ trạng thái "${item.status}" sang "${newStatus}"`,
+      )
+    }
+
+    const runner = this.dataSource.createQueryRunner()
+    await runner.connect()
+    await runner.startTransaction()
+    try {
+      await runner.manager.update(OrderItem, itemId, { status: newStatus })
+      await runner.commitTransaction()
+    } catch (err) {
+      await runner.rollbackTransaction()
+      throw err
+    } finally {
+      await runner.release()
+    }
+
+    const updatedOrder = await this.findById(orderId)
+    const updatedItem = updatedOrder.items.find((i) => i.id === itemId)!
+    return { message: "Cập nhật trạng thái món thành công", item: updatedItem }
+  }
+
+
 }

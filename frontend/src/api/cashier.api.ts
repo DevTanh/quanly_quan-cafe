@@ -1,25 +1,38 @@
 // src/api/cashier.api.ts
-// ── Dùng axios instance chung (có interceptor refresh-token + withCredentials) ──
-// Không dùng fetch() + localStorage.getItem('token') vì app dùng HttpOnly cookie
+// Dùng axios instance chung (có interceptor refresh-token + withCredentials)
 
 import api from './api';
 import { extractArray } from '../utils/extractArray';
 import type { Zone, MenuItem } from '../types/cashier.types';
 import type { CreateOrderDto, Order, CreatePaymentDto } from '../types';
 
+/** Response từ BE khi tạo QR payment (PayOS) */
+export interface QrPaymentResult {
+  payment: {
+    id: number;
+    paymentLinkId: string;
+    qrCode: string;
+    checkoutUrl: string;
+    paymentStatus: string;
+  };
+  order: Order;
+}
+
+/** Response polling trạng thái payment */
+export interface PaymentStatusResult {
+  orderId: number;
+  paymentStatus: 'pending' | 'paid' | 'failed' | 'cancelled' | 'refund_pending' | 'refunded' | null;
+  method: string | null;
+}
+
 export const cashierApi = {
   /**
-   * Lấy danh sách khu vực + bàn từ tables.json (mock).
-   * TODO: Khi BE tạo API /zones?include=tables thì uncomment phần real.
+   * GET /zones?include=tables
+   * Lấy danh sách khu vực + bàn từ BE thực tế.
    */
   getTables: async (): Promise<Zone[]> => {
-    // -- REAL (uncomment khi BE sẵn sàng) --
-    // const { data } = await api.get('/zones', { params: { include: 'tables' } });
-    // return extractArray<Zone>(data);
-
-    // -- MOCK: import tĩnh --
-    const { default: tablesData } = await import('../tables.json');
-    return new Promise(resolve => setTimeout(() => resolve(tablesData as Zone[]), 250));
+    const { data } = await api.get('/zones', { params: { include: 'tables' } });
+    return extractArray<Zone>(data);
   },
 
   /**
@@ -31,7 +44,7 @@ export const cashierApi = {
       params: { status: 'active', limit: 200 },
     });
     const raw = extractArray<any>(data);
-    return raw.map(p => ({
+    return raw.map((p: any) => ({
       id: String(p.id),
       name: p.name,
       price: Number(p.sellingPrice),
@@ -41,17 +54,15 @@ export const cashierApi = {
 
   /**
    * Lấy order đang pending/processing của một bàn.
-   * Dùng để hiển thị trạng thái "Đang có khách" và tải lại order cũ.
    */
   getTableOrder: async (tableId: number): Promise<Order | null> => {
-    const { data } = await api.get<Order[]>('/orders', {
+    const { data } = await api.get<any>('/orders', {
       params: { tableId, status: 'pending' },
     });
     const list = extractArray<Order>(data);
-    // Ưu tiên pending trước, sau đó processing
     const pending = list.find(o => o.status === 'pending');
     if (pending) return pending;
-    const { data: procData } = await api.get<Order[]>('/orders', {
+    const { data: procData } = await api.get<any>('/orders', {
       params: { tableId, status: 'processing' },
     });
     return extractArray<Order>(procData)[0] ?? null;
@@ -63,8 +74,8 @@ export const cashierApi = {
    */
   getOccupiedTableIds: async (): Promise<Set<number>> => {
     const [{ data: pending }, { data: processing }] = await Promise.all([
-      api.get<Order[]>('/orders', { params: { status: 'pending', limit: 200 } }),
-      api.get<Order[]>('/orders', { params: { status: 'processing', limit: 200 } }),
+      api.get<any>('/orders', { params: { status: 'pending', limit: 200 } }),
+      api.get<any>('/orders', { params: { status: 'processing', limit: 200 } }),
     ]);
     const all = [
       ...extractArray<Order>(pending),
@@ -73,17 +84,23 @@ export const cashierApi = {
     return new Set(all.map(o => o.tableId).filter(Boolean));
   },
 
-  /**
-   * Tạo đơn hàng mới — gọi POST /orders theo spec BE.
-   */
+  /** Tạo đơn hàng mới */
   createOrder: async (dto: CreateOrderDto): Promise<Order> => {
     const { data } = await api.post<Order>('/orders', dto);
     return data;
   },
 
+  /** Lấy chi tiết order */
+  getOrder: async (orderId: number): Promise<Order> => {
+    const { data } = await api.get<Order>(`/orders/${orderId}`);
+    return data;
+  },
+
   /**
-   * Thêm/cập nhật món trong đơn đang pending.
-   * version dùng để tránh race condition (optimistic locking).
+   * Cập nhật danh sách món.
+   * FIX: thêm version vào body để tránh lỗi 409 Optimistic Lock.
+   * BE kiểm tra: if (dto.version != null && dto.version !== order.version) → ConflictException
+   * Luôn truyền version từ order hiện tại để BE chấp nhận.
    */
   updateOrderItems: async (
     orderId: number,
@@ -91,42 +108,46 @@ export const cashierApi = {
     version: number,
   ): Promise<Order> => {
     const { data } = await api.patch<Order>(`/orders/${orderId}/items`, {
-      version,
       items,
+      version,     // FIX: bắt buộc phải có
     });
     return data;
   },
 
-  /**
-   * Gửi order xuống bar/bếp để pha chế.
-   */
+  /** Gửi xuống bar/bếp — chuyển status NEW → SENT */
   sendToBar: async (orderId: number): Promise<Order> => {
     const { data } = await api.post<Order>(`/orders/${orderId}/send-to-bar`);
     return data;
   },
 
   /**
-   * Thanh toán order.
-   * method: 'cash' | 'bank_transfer' | 'payos_qr'
-   * receivedAmount: chỉ cần khi method === 'cash'
+   * Thanh toán.
+   * method: 'cash'        → trả về { payment, order }
+   * method: 'payos_qr'    → trả về { payment: { qrCode, checkoutUrl, ... }, order }
+   * method: 'bank_transfer' → trả về { payment, order }
    */
-  pay: async (orderId: number, dto: CreatePaymentDto): Promise<Order> => {
-    const { data } = await api.post<Order>(`/orders/${orderId}/payment`, dto);
+  pay: async (orderId: number, dto: CreatePaymentDto): Promise<any> => {
+    const { data } = await api.post(`/orders/${orderId}/payment`, dto);
     return data;
   },
 
   /**
-   * Hủy QR PayOS đang chờ thanh toán.
+   * Polling trạng thái thanh toán QR.
+   * Gọi mỗi 3s cho đến khi paymentStatus = 'paid' | 'failed' | 'cancelled'.
    */
+  getPaymentStatus: async (orderId: number): Promise<PaymentStatusResult> => {
+    const { data } = await api.get<PaymentStatusResult>(`/orders/${orderId}/payment-status`);
+    return data;
+  },
+
+  /** Hủy payment link QR đang pending */
   cancelPayment: async (orderId: number): Promise<void> => {
     await api.post(`/orders/${orderId}/cancel-payment`);
   },
 
-  /**
-   * Polling trạng thái thanh toán QR.
-   */
-  getPaymentStatus: async (orderId: number) => {
-    const { data } = await api.get(`/orders/${orderId}/payment-status`);
+  /** Hủy order */
+  cancelOrder: async (orderId: number): Promise<Order> => {
+    const { data } = await api.patch<Order>(`/orders/${orderId}/cancel`);
     return data;
   },
 };

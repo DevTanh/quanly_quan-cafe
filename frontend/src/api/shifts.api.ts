@@ -1,5 +1,5 @@
 // src/api/shifts.api.ts
-// Khớp với SHIFT.md — /api/v1/shifts và /api/v1/shift-assignments
+// Khớp với BE spec: /api/v1/shifts và /api/v1/shift-assignments
 
 import api from './api';
 import type {
@@ -16,13 +16,13 @@ export const shiftsApi = {
   /** GET /shifts — danh sách ca active (shift:view_own) */
   findAll: async (): Promise<Shift[]> => {
     const { data } = await api.get<Shift[]>('/shifts');
-    return data;
+    return Array.isArray(data) ? data : (data as any)?.data ?? [];
   },
 
   /** GET /shifts/all — tất cả ca kể cả inactive (shift:manage) */
   findAllIncludeInactive: async (): Promise<Shift[]> => {
     const { data } = await api.get<Shift[]>('/shifts/all');
-    return data;
+    return Array.isArray(data) ? data : (data as any)?.data ?? [];
   },
 
   /** GET /shifts/:id (shift:view_own) */
@@ -36,7 +36,7 @@ export const shiftsApi = {
     name: string;
     startTime: string;    // HH:mm
     endTime: string;      // HH:mm
-    maxStaff?: number;    // default 3
+    maxStaff?: number;
     description?: string;
   }): Promise<Shift> => {
     const { data } = await api.post<Shift>('/shifts', body);
@@ -45,10 +45,12 @@ export const shiftsApi = {
 
   /**
    * PATCH /shifts/:id (shift:manage)
-   * LƯU Ý: Không được sửa giờ nếu có assignment tương lai.
-   * BE sẽ trả 400 nếu vi phạm.
+   * BE trả 400 nếu có assignment tương lai khi đổi giờ.
    */
-  update: async (id: number, body: Partial<Pick<Shift, 'name' | 'startTime' | 'endTime' | 'maxStaff' | 'description' | 'isActive'>>): Promise<Shift> => {
+  update: async (
+    id: number,
+    body: Partial<Pick<Shift, 'name' | 'startTime' | 'endTime' | 'maxStaff' | 'description' | 'isActive'>>,
+  ): Promise<Shift> => {
     const { data } = await api.patch<Shift>(`/shifts/${id}`, body);
     return data;
   },
@@ -67,29 +69,35 @@ export const shiftsApi = {
   getAssignments: async (params?: {
     userId?: number;
     shiftId?: number;
-    workDate?: string;    // YYYY-MM-DD
-    from?: string;        // YYYY-MM-DD
-    to?: string;          // YYYY-MM-DD
+    workDate?: string;
+    startDate?: string;
+    endDate?: string;
   }): Promise<ShiftAssignment[]> => {
     const { data } = await api.get<ShiftAssignment[]>('/shift-assignments', { params });
-    return data;
+    return Array.isArray(data) ? data : (data as any)?.data ?? [];
   },
 
   /** GET /shift-assignments/my — lịch cá nhân (shift:view_own) */
   getMyAssignments: async (params?: {
-    from?: string;
-    to?: string;
+    startDate?: string;
+    endDate?: string;
   }): Promise<ShiftAssignment[]> => {
     const { data } = await api.get<ShiftAssignment[]>('/shift-assignments/my', { params });
-    return data;
+    return Array.isArray(data) ? data : (data as any)?.data ?? [];
   },
 
-  /** GET /shift-assignments/week — lịch tuần Mon–Sun (shift:view_all) */
-  getWeekSchedule: async (weekStart?: string): Promise<ShiftAssignment[]> => {
-    const { data } = await api.get<ShiftAssignment[]>('/shift-assignments/week', {
-      params: weekStart ? { weekStart } : undefined,
-    });
-    return data;
+  /**
+   * GET /shift-assignments/week — lịch tuần Mon–Sun (shift:view_all)
+   * BE expect param: ?date=YYYY-MM-DD (bất kỳ ngày nào trong tuần)
+   * FIX: đổi tên param từ weekStart → date cho khớp BE spec.
+   */
+  getWeekSchedule: async (date?: string): Promise<Record<string, ShiftAssignment[]>> => {
+    const queryDate = date ?? new Date().toISOString().slice(0, 10);
+    const { data } = await api.get<Record<string, ShiftAssignment[]>>(
+      '/shift-assignments/week',
+      { params: { date: queryDate } },
+    );
+    return (data && typeof data === 'object' && !Array.isArray(data)) ? data : {};
   },
 
   /** GET /shift-assignments/:id (shift:view_all) */
@@ -111,7 +119,6 @@ export const shiftsApi = {
 
   /**
    * POST /shift-assignments/bulk — phân ca hàng loạt (shift:manage)
-   * Cross-product userIds × workDates × shiftId.
    * Partial success: BE trả { created, errors, warnings }
    */
   bulkAssign: async (dto: BulkAssignDto): Promise<BulkAssignResult> => {
@@ -122,7 +129,6 @@ export const shiftsApi = {
   /**
    * PATCH /shift-assignments/:id (shift:manage)
    * Đổi status → 'absent': chỉ hợp lệ với workDate <= today.
-   * BE trả 400 nếu workDate là ngày tương lai.
    */
   updateAssignment: async (
     id: number,

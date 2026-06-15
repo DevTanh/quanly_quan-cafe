@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Patch, Param, Body, Query, ParseIntPipe } from "@nestjs/common"
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  Query,
+  ParseIntPipe,
+  HttpCode,
+  HttpStatus,
+} from "@nestjs/common"
 import { ApiCookieAuth, ApiOperation, ApiTags } from "@nestjs/swagger"
 import { TablesService } from "./services/tables.service"
 import { CreateZoneDto } from "./dto/create-zone.dto"
@@ -14,32 +26,42 @@ export class ZonesController {
 
   @Get()
   @RequirePermissions("table:view")
-  @ApiOperation({ summary: "Danh sach khu vuc" })
+  @ApiOperation({ summary: "Danh sách khu vực (include=tables để kèm bàn)" })
   findAll(@Query() query: QueryZonesDto) {
     return this.tablesService.findZones(query)
   }
 
   @Get(":id")
   @RequirePermissions("table:view")
-  @ApiOperation({ summary: "Chi tiet khu vuc" })
+  @ApiOperation({ summary: "Chi tiết khu vực" })
   findById(@Param("id", ParseIntPipe) id: number) {
     return this.tablesService.findZoneById(id)
   }
 
   @Post()
   @RequirePermissions("table:manage")
-  @ApiOperation({ summary: "Tao khu vuc" })
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: "Tạo khu vực mới" })
   create(@Body() dto: CreateZoneDto) {
     return this.tablesService.createZone(dto)
   }
 
   @Patch(":id")
   @RequirePermissions("table:manage")
-  @ApiOperation({ summary: "Cap nhat khu vuc" })
+  @ApiOperation({ summary: "Cập nhật khu vực" })
   update(
     @Param("id", ParseIntPipe) id: number,
     @Body() dto: UpdateZoneDto,
   ) {
     return this.tablesService.updateZone(id, dto)
+  }
+
+  @Delete(":id")
+  @RequirePermissions("table:manage")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Xóa khu vực (chỉ khi không còn bàn active)" })
+  async delete(@Param("id", ParseIntPipe) id: number) {
+    await this.tablesService.deleteZone(id)
+    return { statusCode: 200, message: `Đã xóa khu vực #${id} thành công` }
   }
 }

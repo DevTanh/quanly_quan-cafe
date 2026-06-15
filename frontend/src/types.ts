@@ -1,19 +1,6 @@
 // src/types.ts
 // Source of truth duy nhất cho toàn app — các file khác import từ đây, không tự khai báo lại.
 
-// ─── NAV ────────────────────────────────────────────────────
-export type NavPage =
-  | 'Tổng quan'
-  | 'Hàng hóa'
-  | 'Phòng/Bàn'
-  | 'Giao dịch'
-  | 'Đối tác'
-  | 'Nhân viên'
-  | 'Bán Online'
-  | 'Sổ quỹ'
-  | 'Báo cáo'
-  | 'Thuế & Kế toán';
-
 // ─── USER / AUTH ─────────────────────────────────────────────
 // Một định nghĩa duy nhất — KHÔNG khai báo lại trong AuthContext hay employeeTypes
 export type UserRole = 'admin' | 'manager' | 'cashier' | 'staff' | 'barista';

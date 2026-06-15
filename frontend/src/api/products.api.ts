@@ -73,6 +73,13 @@ export const productsApi = {
     await api.delete(`/products/${id}`);
   },
 
+  // Thêm vào productsApi object trong products.api.ts
+  // (sau method delete, trước downloadTemplate)
+
+  bulkDelete: async (ids: number[]): Promise<{ deleted: number; failed: number[] }> => {
+    const { data } = await api.delete('/products/bulk', { data: { ids } });
+    return data;
+  },
   /**
    * GET /products/template/excel — tải file mẫu (product:manage)
    */

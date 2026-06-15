@@ -12,8 +12,22 @@ export class ReportsController {
 
   @Get("dashboard")
   @RequirePermissions("report:view_daily")
-  @ApiOperation({ summary: "Báo cáo tổng quan dashboard" })
+  @ApiOperation({ summary: "Báo cáo tổng quan dashboard — KPI, top sản phẩm, tồn kho thấp" })
   getDashboard(@Query() query: QueryReportDto) {
     return this.reportsService.getDashboard(query)
+  }
+
+  @Get("revenue")
+  @RequirePermissions("report:view_full")
+  @ApiOperation({ summary: "Báo cáo doanh thu theo ngày trong khoảng thời gian" })
+  getRevenue(@Query() query: QueryReportDto) {
+    return this.reportsService.getRevenueReport(query)
+  }
+
+  @Get("shift")
+  @RequirePermissions("report:view_shift")
+  @ApiOperation({ summary: "Báo cáo theo ca — phân bổ doanh thu theo giờ, top sản phẩm" })
+  getShift(@Query() query: QueryReportDto) {
+    return this.reportsService.getShiftReport(query)
   }
 }

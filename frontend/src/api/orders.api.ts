@@ -1,5 +1,4 @@
 // src/api/orders.api.ts
-// ── File MỚI — không đụng file cũ ──
 
 import api from './api';
 import type {
@@ -11,10 +10,27 @@ import type {
   Payment,
 } from '../types';
 
+/** Kiểu trả về phân trang từ BE — khớp với PaginatedResult<Order> */
+export interface PaginatedOrders {
+  data: Order[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export const ordersApi = {
-  /** GET /orders */
-  findAll: async (query?: QueryOrderDto): Promise<Order[]> => {
-    const { data } = await api.get<Order[]>('/orders', { params: query });
+  /**
+   * GET /orders
+   * BE trả PaginatedResult<Order> — không phải Order[] thuần.
+   * FIX: đổi type từ Order[] → PaginatedOrders.
+   */
+  findAll: async (query?: QueryOrderDto): Promise<PaginatedOrders> => {
+    const { data } = await api.get<PaginatedOrders>('/orders', { params: query });
+    // Guard: nếu BE trả mảng thẳng (legacy), bọc lại
+    if (Array.isArray(data)) {
+      return { data: data as unknown as Order[], total: (data as any).length, page: 1, limit: 200, totalPages: 1 };
+    }
     return data;
   },
 
@@ -25,7 +41,7 @@ export const ordersApi = {
   },
 
   /** GET /orders/:id/payment-status */
-  getPaymentStatus: async (id: number): Promise<{ paymentStatus: string; payment?: Payment }> => {
+  getPaymentStatus: async (id: number): Promise<{ orderId: number; paymentStatus: string | null; method: string | null }> => {
     const { data } = await api.get(`/orders/${id}/payment-status`);
     return data;
   },
@@ -36,7 +52,10 @@ export const ordersApi = {
     return data;
   },
 
-  /** PATCH /orders/:id/items — cập nhật món */
+  /**
+   * PATCH /orders/:id/items — cập nhật món
+   * FIX: version phải được truyền từ order.version để tránh lỗi 409 Optimistic Lock.
+   */
   updateItems: async (id: number, dto: UpdateOrderItemsDto): Promise<Order> => {
     const { data } = await api.patch<Order>(`/orders/${id}/items`, dto);
     return data;
@@ -49,8 +68,8 @@ export const ordersApi = {
   },
 
   /** POST /orders/:id/payment — thanh toán */
-  pay: async (id: number, dto: CreatePaymentDto): Promise<Order> => {
-    const { data } = await api.post<Order>(`/orders/${id}/payment`, dto);
+  pay: async (id: number, dto: CreatePaymentDto): Promise<{ payment: Payment; order: Order }> => {
+    const { data } = await api.post<{ payment: Payment; order: Order }>(`/orders/${id}/payment`, dto);
     return data;
   },
 
@@ -62,6 +81,16 @@ export const ordersApi = {
   /** PATCH /orders/:id/cancel — hủy đơn */
   cancel: async (id: number): Promise<Order> => {
     const { data } = await api.patch<Order>(`/orders/${id}/cancel`);
+    return data;
+  },
+
+  /** PATCH /orders/:orderId/items/:itemId/status — cập nhật trạng thái món (barista/staff) */
+  updateItemStatus: async (
+    orderId: number,
+    itemId: number,
+    status: 'new' | 'sent' | 'done' | 'cancelled',
+  ): Promise<{ message: string }> => {
+    const { data } = await api.patch(`/orders/${orderId}/items/${itemId}/status`, { status });
     return data;
   },
 };

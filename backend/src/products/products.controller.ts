@@ -22,6 +22,7 @@ import { CreateProductDto } from "./dto/create-product.dto"
 import { UpdateProductDto } from "./dto/update-product.dto"
 import { QueryProductDto } from "./dto/query-product.dto"
 import { RequirePermissions } from "../permissions/decorators/permissions.decorator"
+import { BadRequestException } from '@nestjs/common'
 
 @ApiTags("Products")
 @ApiCookieAuth()
@@ -131,6 +132,20 @@ export class ProductsController {
     return this.productsService.update(id, dto, file)
   }
 
+  @Delete('bulk')
+  @RequirePermissions('product:manage')
+  @ApiOperation({ summary: 'Xóa nhiều hàng hóa — Admin/Manager' })
+  async bulkDelete(@Body('ids') ids: number[]) {
+    if (!ids?.length) {
+      throw new BadRequestException('Vui lòng chọn ít nhất 1 sản phẩm để xóa');
+    }
+    const result = await this.productsService.bulkDelete(ids);
+    return {
+      statusCode: 200,
+      message: `Đã xóa ${result.deleted} sản phẩm`,
+      ...result,
+    };
+  }
   // ─── DELETE /products/:id ────────────────────────────────────
   @Delete(":id")
   @RequirePermissions("product:manage")

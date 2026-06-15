@@ -26,6 +26,10 @@ export enum PaymentStatus {
   FAILED = "failed",
   /** Payment link bị hủy */
   CANCELLED = "cancelled",
+  /** Đang chờ phê duyệt hoàn tiền */
+  REFUND_PENDING = "refund_pending",
+  /** Đã hoàn tiền */
+  REFUNDED = "refunded",
 }
 
 // ─── ENTITY ─────────────────────────────────────────────────────────
@@ -65,7 +69,7 @@ export class Payment {
   @Column({ type: "text", nullable: true })
   note?: string
 
-  /** Trạng thái thanh toán (dùng cho QR / async) */
+  /** Trạng thái thanh toán (dùng cho QR / async / refund) */
   @Column({
     name: "payment_status",
     type: "enum",
@@ -91,6 +95,26 @@ export class Payment {
   /** Mã giao dịch ngân hàng (từ webhook) */
   @Column({ name: "transaction_ref", type: "varchar", length: 200, nullable: true })
   transactionRef?: string
+
+  // ─── REFUND FIELDS ───────────────────────────────────────────
+
+  /** Lý do yêu cầu hoàn tiền */
+  @Column({ name: "refund_reason", type: "varchar", length: 500, nullable: true })
+  refundReason?: string
+
+  /** userId của người yêu cầu hoàn tiền */
+  @Column({ name: "refund_requested_by", type: "int", nullable: true })
+  refundRequestedBy?: number
+
+  @Column({ name: "refund_requested_at", type: "datetime", nullable: true })
+  refundRequestedAt?: Date
+
+  /** userId của người phê duyệt hoàn tiền */
+  @Column({ name: "refund_approved_by", type: "int", nullable: true })
+  refundApprovedBy?: number
+
+  @Column({ name: "refund_approved_at", type: "datetime", nullable: true })
+  refundApprovedAt?: Date
 
   @CreateDateColumn({ name: "paid_at", type: "datetime" })
   paidAt: Date
