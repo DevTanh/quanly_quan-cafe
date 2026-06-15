@@ -25,6 +25,12 @@ export interface PaymentStatusResult {
   method: string | null;
 }
 
+export interface CancelPaymentResult {
+  statusCode: number;
+  message: string;
+  paymentStatus: 'cancelled';
+}
+
 export const cashierApi = {
   /**
    * GET /zones?include=tables
@@ -141,8 +147,9 @@ export const cashierApi = {
   },
 
   /** Hủy payment link QR đang pending */
-  cancelPayment: async (orderId: number): Promise<void> => {
-    await api.post(`/orders/${orderId}/cancel-payment`);
+  cancelPayment: async (orderId: number): Promise<CancelPaymentResult> => {
+    const { data } = await api.post<CancelPaymentResult>(`/orders/${orderId}/cancel-payment`);
+    return data;
   },
 
   /** Hủy order */

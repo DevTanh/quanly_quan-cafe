@@ -19,6 +19,7 @@ describe("OrdersService table validation", () => {
   }
   let paymentsRepo: {
     findByOrderId: jest.Mock
+    findByPaymentLinkId: jest.Mock
     create: jest.Mock
     update: jest.Mock
     delete: jest.Mock
@@ -30,7 +31,13 @@ describe("OrdersService table validation", () => {
     findActiveTableById: jest.Mock
   }
   let payosService: {
+    createPaymentLink: jest.Mock
     getPaymentLink: jest.Mock
+    cancelPaymentLink: jest.Mock
+    verifyWebhookSignature: jest.Mock
+  }
+  let configService: {
+    get: jest.Mock
   }
   let queryRunner: {
     connect: jest.Mock
@@ -62,6 +69,7 @@ describe("OrdersService table validation", () => {
     }
     paymentsRepo = {
       findByOrderId: jest.fn(),
+      findByPaymentLinkId: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
@@ -73,7 +81,13 @@ describe("OrdersService table validation", () => {
       findActiveTableById: jest.fn(),
     }
     payosService = {
+      createPaymentLink: jest.fn(),
       getPaymentLink: jest.fn(),
+      cancelPaymentLink: jest.fn(),
+      verifyWebhookSignature: jest.fn(),
+    }
+    configService = {
+      get: jest.fn().mockReturnValue("http://localhost:5173"),
     }
     queryRunner = {
       connect: jest.fn(),
@@ -102,7 +116,7 @@ describe("OrdersService table validation", () => {
       paymentsRepo,
       productsRepo,
       payosService,
-      {},
+      configService,
       dataSource,
       tablesService,
     ) as OrdersService
@@ -292,5 +306,124 @@ describe("OrdersService table validation", () => {
       payment: { paymentStatus: PaymentStatus.PAID },
       order: { status: OrderStatus.COMPLETED },
     })
+  })
+
+  it("uses a fresh PayOS orderCode when creating QR again for the same order", async () => {
+    const order = {
+      id: 101,
+      status: OrderStatus.PROCESSING,
+      subtotal: 85000,
+      items: [],
+    }
+
+    ordersRepo.findById.mockResolvedValue(order)
+    paymentsRepo.findByOrderId.mockResolvedValue(null)
+    payosService.createPaymentLink
+      .mockResolvedValueOnce({
+        paymentLinkId: "pl_101_a",
+        checkoutUrl: "checkout-a",
+        qrCode: "qr-a",
+      })
+      .mockResolvedValueOnce({
+        paymentLinkId: "pl_101_b",
+        checkoutUrl: "checkout-b",
+        qrCode: "qr-b",
+      })
+    paymentsRepo.create.mockImplementation(async (data) => data)
+
+    const now = jest.spyOn(Date, "now").mockReturnValue(1710000000000)
+    try {
+      await service.pay(101, { method: PaymentMethod.PAYOS_QR }, 1)
+      await service.pay(101, { method: PaymentMethod.PAYOS_QR }, 1)
+    } finally {
+      now.mockRestore()
+    }
+
+    const orderCodes = payosService.createPaymentLink.mock.calls.map((call) => call[0])
+    expect(orderCodes).toHaveLength(2)
+    expect(orderCodes[0]).not.toBe(101)
+    expect(orderCodes[1]).not.toBe(101)
+    expect(new Set(orderCodes).size).toBe(2)
+    expect(orderCodes[1]).toBeGreaterThan(orderCodes[0])
+  })
+
+  it("matches PayOS webhook by paymentLinkId when PayOS orderCode differs from order id", async () => {
+    const payment = {
+      id: 7,
+      orderId: 101,
+      method: PaymentMethod.PAYOS_QR,
+      paymentStatus: PaymentStatus.PENDING,
+      paymentLinkId: "pl_101_b",
+      amount: 85000,
+    }
+    const order = {
+      id: 101,
+      status: OrderStatus.PROCESSING,
+      items: [],
+    }
+    const payload = {
+      code: "00",
+      desc: "success",
+      signature: "sig",
+      data: {
+        orderCode: 1710000000000,
+        amount: 85000,
+        description: "Thanh toan order #101",
+        paymentLinkId: "pl_101_b",
+      },
+    }
+
+    payosService.verifyWebhookSignature.mockReturnValue(true)
+    paymentsRepo.findByPaymentLinkId.mockResolvedValue(payment)
+    ordersRepo.findById.mockResolvedValue(order)
+    const log = jest.spyOn(console, "log").mockImplementation(() => undefined)
+
+    try {
+      await expect(service.handlePayosWebhook(payload)).resolves.toMatchObject({
+        success: true,
+      })
+    } finally {
+      log.mockRestore()
+    }
+
+    expect(paymentsRepo.findByPaymentLinkId).toHaveBeenCalledWith("pl_101_b")
+    expect(paymentsRepo.findByOrderId).not.toHaveBeenCalledWith(1710000000000)
+    expect(queryRunner.manager.update).toHaveBeenCalledWith(
+      Payment,
+      7,
+      expect.objectContaining({
+        paymentStatus: PaymentStatus.PAID,
+        receivedAmount: 85000,
+      }),
+    )
+    expect(queryRunner.manager.update).toHaveBeenCalledWith(Order, 101, {
+      status: OrderStatus.COMPLETED,
+    })
+  })
+
+  it("cancels a pending PayOS payment and releases the order for another payment", async () => {
+    const payment = {
+      id: 7,
+      orderId: 101,
+      method: PaymentMethod.PAYOS_QR,
+      paymentStatus: PaymentStatus.PENDING,
+      paymentLinkId: "pl_101",
+    }
+
+    paymentsRepo.findByOrderId.mockResolvedValue(payment)
+    payosService.cancelPaymentLink.mockResolvedValue(undefined)
+    paymentsRepo.update.mockResolvedValue(undefined)
+    paymentsRepo.delete.mockResolvedValue(undefined)
+
+    await expect(service.cancelPaymentLink(101)).resolves.toMatchObject({
+      statusCode: 200,
+      paymentStatus: PaymentStatus.CANCELLED,
+    })
+
+    expect(payosService.cancelPaymentLink).toHaveBeenCalledWith("pl_101")
+    expect(paymentsRepo.update).toHaveBeenCalledWith(7, {
+      paymentStatus: PaymentStatus.CANCELLED,
+    })
+    expect(paymentsRepo.delete).toHaveBeenCalledWith(7)
   })
 })

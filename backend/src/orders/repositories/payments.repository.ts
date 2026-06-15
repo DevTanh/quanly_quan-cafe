@@ -16,6 +16,10 @@ export class PaymentsRepository {
     return await this.repo.findOne({ where: { orderId } })
   }
 
+  async findByPaymentLinkId(paymentLinkId: string): Promise<Payment | null> {
+    return await this.repo.findOne({ where: { paymentLinkId } })
+  }
+
   async findByQuery(query: QueryPaymentDto): Promise<PaginatedResult<Payment>> {
     const page = query.page ?? 1
     const limit = query.limit ?? 20

@@ -619,13 +619,27 @@ export function useCashier() {
   // ─── Cancel QR ────────────────────────────────────────────────────────────
 
   const handleCancelQr = async () => {
-    const { orderId } = paymentModal;
+    const { orderId, paymentLinkId } = paymentModal;
     if (!orderId) return;
     stopQrPolling();
-    try { await cashierApi.cancelPayment(orderId); } catch { /* ignore */ }
-    setPaymentModal(m => ({
-      ...m, qrCode: null, checkoutUrl: null, paymentLinkId: null, pollingStatus: 'idle',
-    }));
+    try {
+      await cashierApi.cancelPayment(orderId);
+      setPaymentModal(m => ({
+        ...m,
+        qrCode: null,
+        checkoutUrl: null,
+        paymentLinkId: null,
+        pollingStatus: 'idle',
+      }));
+      addToast('success', 'Đã hủy QR thanh toán');
+    } catch (err: any) {
+      const msg = err?.response?.data?.message;
+      addToast('error', Array.isArray(msg) ? msg[0] : msg ?? 'Không thể hủy QR thanh toán');
+      if (paymentLinkId) {
+        setPaymentModal(m => ({ ...m, pollingStatus: 'polling' }));
+        startQrPolling(orderId);
+      }
+    }
   };
 
   // ─── Close modal ──────────────────────────────────────────────────────────

@@ -3,7 +3,10 @@ import { PaymentMethod, PaymentStatus } from "../entities/payment.entity"
 
 describe("PaymentsRepository.findByQuery", () => {
   let repository: PaymentsRepository
-  let ormRepo: { createQueryBuilder: jest.Mock }
+  let ormRepo: {
+    createQueryBuilder: jest.Mock
+    findOne: jest.Mock
+  }
   let qb: {
     leftJoinAndSelect: jest.Mock
     andWhere: jest.Mock
@@ -26,6 +29,7 @@ describe("PaymentsRepository.findByQuery", () => {
     }
     ormRepo = {
       createQueryBuilder: jest.fn().mockReturnValue(qb),
+      findOne: jest.fn(),
     }
 
     repository = new PaymentsRepository(ormRepo as any)
@@ -73,6 +77,16 @@ describe("PaymentsRepository.findByQuery", () => {
 
     expect(qb.andWhere).toHaveBeenCalledWith("p.order_id = :orderId", {
       orderId: 12,
+    })
+  })
+
+  it("finds a payment by PayOS payment link id", async () => {
+    const payment = { id: 7, paymentLinkId: "pl_101_b" }
+    ormRepo.findOne.mockResolvedValue(payment)
+
+    await expect((repository as any).findByPaymentLinkId("pl_101_b")).resolves.toBe(payment)
+    expect(ormRepo.findOne).toHaveBeenCalledWith({
+      where: { paymentLinkId: "pl_101_b" },
     })
   })
 })

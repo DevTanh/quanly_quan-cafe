@@ -25,6 +25,8 @@ import type { PaginatedResult } from "../repositories/orders.repository"
 
 @Injectable()
 export class OrdersService {
+  private lastPayosOrderCode = 0
+
   constructor(
     private readonly ordersRepo: OrdersRepository,
     private readonly orderItemsRepo: OrderItemsRepository,
@@ -292,12 +294,13 @@ export class OrdersService {
 
   /** Tạo payment link QR qua PayOS — chưa trừ kho, chờ webhook */
   private async createPayosQR(order: Order, amount: number, userId: number) {
-    const clientDomain = this.configService.get<string>("CLIENT_DOMAIN_DEV") ?? "http://localhost:3000"
+    const clientDomain = this.configService.get<string>("CLIENT_DOMAIN_DEV")
     const cancelUrl = `${clientDomain}/orders/${order.id}?payment=cancelled`
     const returnUrl = `${clientDomain}/orders/${order.id}?payment=success`
 
+    const payosOrderCode = this.nextPayosOrderCode()
     const link = await this.payosService.createPaymentLink(
-      order.id,
+      payosOrderCode,
       amount,
       `Thanh toan order #${order.id}`,
       cancelUrl,
@@ -347,11 +350,17 @@ export class OrdersService {
       return { success: false, message: "Invalid signature" }
     }
 
-    const orderId = webhookPayload.data.orderCode
-    const payment = await this.paymentsRepo.findByOrderId(orderId)
+    let payment: Payment | null = null
+    if (webhookPayload.data.paymentLinkId) {
+      payment = await this.paymentsRepo.findByPaymentLinkId(webhookPayload.data.paymentLinkId)
+    }
+    if (!payment) {
+      payment = await this.paymentsRepo.findByOrderId(webhookPayload.data.orderCode)
+    }
     if (!payment) {
       return { success: false, message: "Payment not found" }
     }
+    const orderId = payment.orderId
 
     // Đã xử lý rồi
     if (payment.paymentStatus === PaymentStatus.PAID) {
@@ -448,7 +457,11 @@ export class OrdersService {
     // Xóa payment record để cho phép thanh toán lại
     await this.paymentsRepo.delete(payment.id)
 
-    return { statusCode: 200, message: "Đã hủy QR thanh toán" }
+    return {
+      statusCode: 200,
+      message: "Đã hủy QR thanh toán",
+      paymentStatus: PaymentStatus.CANCELLED,
+    }
   }
 
   // ─── CANCEL ORDER ─────────────────────────────────────────────────
@@ -654,5 +667,11 @@ export class OrdersService {
     return { message: "Cập nhật trạng thái món thành công", item: updatedItem }
   }
 
-
+  private nextPayosOrderCode() {
+    const now = Date.now()
+    this.lastPayosOrderCode = now > this.lastPayosOrderCode
+      ? now
+      : this.lastPayosOrderCode + 1
+    return this.lastPayosOrderCode
+  }
 }
